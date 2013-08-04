@@ -1,11 +1,3 @@
-=== ImpactPubs ===
-Contributors: Casey A. Ydenberg
-Tags: List of publications, PubMed
-Requires at least: 3.0.1
-Tested up to: 3.5.2
-Stable tag: 4.3
-License: GPLv3 or later
-License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
 Search PubMed or ORCiD and attach ImpactStory badges. Display the results with shortcode.
 
@@ -14,7 +6,7 @@ This is a WordPress plugin to automatically display a publication profile on a w
 
 Results can be pulled from PubMed or ORCiD, and will be automatically updated once a week.
 
-One profile can be create per blog user.
+One profile can be created per blog user.
 
 Altmetrics badges can be appended to each result by obtaining an API key from ImpactStory (www.impactstory.org)
 The Pubmed query and API information can be entered into a special Settings page created in the dashboard. 
@@ -77,8 +69,11 @@ on the left-hand side of your profile.
 Initial release
 
 = 2.0=
+
 Added ORCiD search functionality
+
 Added multi-user functionality
+
 Added weekly automatic updates
 
 ==
