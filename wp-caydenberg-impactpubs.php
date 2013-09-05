@@ -246,7 +246,8 @@ class impactpubs_publist {
 		//format the author string with "%20" in place of a space to make a remote call
 		$pubmed_query= preg_replace("/[\s\+]/", "\%20", $pubmed_query);
 		//build the url for the initial search
-		$search = "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=".$pubmed_query."&retmode=xml";
+		$search = "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=".$pubmed_query
+		."&retmax=1000&retmode=xml";
 		//build the url for subsequent call to esummary to retrieve the records
 		$retrieve = "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&id=";
 		//make a call to pubmeds esearch utility, to retrieve pmids associated with an authors name or
@@ -565,9 +566,6 @@ function impactpubs_parse_bibtex($bibtex_str){
 	return $extracted;
 }
 
-//todo: validation functions
-//cron job
-
 /*~~~~~~~~~~~~~~~~~~~~~~~~~
 string validation impactpubs_validate_pubsource(string $value)
 Called by: impactpubs_settings_form()
@@ -587,7 +585,7 @@ Called by: impactpubs_settings_form()
 function impactpubs_validate_identifier($value, $pubsource = 'orcid'){
 	if ( $pubsource == 'orcid' ) {
 		//allowed characters are numbers and the dash (-) symbol
-		if ( preg_match('/[^0-9\-]/', $value) ) {
+		if ( preg_match('/[^0-9A-Za-z\-]/', $value) ) {
 			return 'Invalid ORCiD key';
 		} else {
 			return '';
