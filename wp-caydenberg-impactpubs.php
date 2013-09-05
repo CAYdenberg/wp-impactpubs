@@ -2,7 +2,7 @@
 /*
 Plugin Name: ImpactPubs
 Description: Display a list of publications with badges from ImpactStory.
-Version: 2.0
+Version: 2.2
 Author: Casey A. Ydenberg
 Author URI: www.brittle-star.com
 */
@@ -29,8 +29,14 @@ WORDPRESS HOOKS
 ~~~~~~~~~~~~~~~~~~~~~~*/
 register_activation_hook(__FILE__, 'impactpubs_install');
 register_deactivation_hook(__FILE__, 'impactpubs_uninstall');
+
+add_action( 'wp_enqueue_scripts', 'impactpubs_scripts' );
+add_action( 'admin_enqueue_scripts', 'impactpubs_scripts' );
+
 add_action('admin_menu', 'impactpubs_create_menu');
+
 add_action('impactpubs_weekly_update', 'impactpubs_update_lists');
+
 add_shortcode('publications', 'impactpubs_display_pubs');
 
 //installation procedures: 
@@ -43,6 +49,13 @@ function impactpubs_install() {
 //remove scheduled tasks
 function impactpubs_uninstall() {
 	wp_clear_scheduled_hook( 'impactpubs_weekly_update' );
+}
+
+//add javascript and stylesheets to both the admin page and front-end.
+//hooked by 'wp_enqueue_scripts' and 'admin_enqueue_scripts'
+function impactpubs_scripts() {
+	wp_enqueue_style( 'ip_style', plugins_url( 'ip_style.css', __FILE__ ) );
+	wp_enqueue_script( 'ip_script', plugins_url( 'ip_script.js' , __FILE__) );
 }
 
 //create the admin menu
@@ -490,15 +503,11 @@ impactpubs_publist->import_from_pubmed()
 impactpubs_publist->import_from_orcid()
 
 Takes an array of author names and returns a nicely formatted string.
-If lastnamefirst is set to true, it will insert a comma in each authors name 
-where it enoucnters whitespace (between 1st and last name). 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-function impactpubs_author_format($authors, $lastnamefirst = TRUE){
+function impactpubs_author_format($authors){
 	$output = "";
 	foreach ($authors as $author){
-		$author = trim($author);
-		// "Ydenberg CA" with "Ydenberg, CA"
-		if ( $lastnamefirst ) $author = preg_replace("/\s/", ", ", $author); 
+		$author = trim($author); 
 		$output = $output.", ".$author;
 	}
 	$output = trim($output, ';,');
