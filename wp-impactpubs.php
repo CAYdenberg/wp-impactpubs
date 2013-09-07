@@ -2,7 +2,7 @@
 /*
 Plugin Name: ImpactPubs
 Description: Display a list of publications with badges from ImpactStory.
-Version: 2.2
+Version: 2.3
 Author: Casey A. Ydenberg
 Author URI: www.brittle-star.com
 */
@@ -141,7 +141,7 @@ function impactpubs_settings_form() {
 		</form>	
 	</div>
 	
-	<div class = "wrap">
+	<div class = "wrap" id = "impactpubs_wrapper">		
 		<h2>When you type <i>[publications name=<?php echo $user_ob->user_login; ?>]</i>,
 		the following will be shown:</h2>
 			
@@ -257,7 +257,7 @@ class impactpubs_publist {
 	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 	function import_from_pubmed($pubmed_query) {
 		//format the author string with "%20" in place of a space to make a remote call
-		$pubmed_query= preg_replace("/[\s\+]/", "\%20", $pubmed_query);
+		$pubmed_query = preg_replace("/[\s\+]/", "%20", $pubmed_query);
 		//build the url for the initial search
 		$search = "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=".$pubmed_query
 		."&retmax=1000&retmode=xml";
@@ -280,7 +280,7 @@ class impactpubs_publist {
 				//the ending ",", if present, doesn't seem to have any adverse effects
 			}
 			//make a second call to pubmed's esummary utility
-			$result = file_get_contents($retrieve);
+			if ( !$result = file_get_contents($retrieve) ) die('There was a problem getting data from PubMed');
 			//load the results into a DOM, then retrieve the DocSum tags, which represent each paper that was found
 			$dom->loadXML($result);
 			$papers = $dom->getElementsByTagName('DocSum');
@@ -335,82 +335,69 @@ class impactpubs_publist {
 	Assigns paper properties to the child objects of class paper.
 	Called by: impactpub_settings_form()
 	Calls:
-	impactpub_author_format()
-	impactpub_parse_bibtex()
+	impactpubs_author_format()
+	impactpubs_parse_bibtex()
 	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 	function import_from_orcid($orcid_id){
-		$retrieve = 'http://pub.orcid.org/'.$orcid_id.'/orcid-works';
+		$retrieve = 'http://feed.labs.orcid-eu.org/'.$orcid_id.'.json';
 		if ( !$result = file_get_contents($retrieve) ) die('There was a problem getting data from ORCiD');
-		$dom = new DOMDocument();
-		$dom->loadXML($result);
-		//works are objects on the XML DOM representing each item in an ORCID user's profile
-		$works = $dom->getElementsByTagName('orcid-work');
+		$works = json_decode($result);
 		$paper_num = 0;
-		//loop through the works
-		foreach ($works as $work) {
-			//create a new paper to store properties in
-			//using $paper_num as a key
+		foreach ($works as $work){
+			$listing = new impactpubs_paper();
+			//get the publication year (essential)
+			if ( isset($work->issued->{'date-parts'}[0][0]) ) {
+				$listing->year = $work->issued->{'date-parts'}[0][0];
+			} else {
+				continue;
+			}
+			//get the title (essential)
+			if ( isset($work->title) ) {
+				$listing->title = $work->title;	
+			} else {
+				continue;
+			}
+			//get the journal/publisher/book series (essential)
+			if ( isset( $work->{'container-title'} ) ) {
+				$listing->journal = $work->{'container-title'};
+			} else if ( isset($work->publisher) ) {
+				$listing->journal = $work->publisher;
+			} else {
+				continue;
+			}
+			//get the authors list (essential)
+			if ( isset($work->author) ) {
+				$authors_arr = array();
+				foreach ($work->author as $author_ob) {
+					$authors_arr[] = $author_ob->family.', '.$author_ob->given;
+				}
+				$listing->authors = impactpubs_author_format($authors_arr);
+			} else {
+				continue;
+			}
+			//get volume, issue, and pages (not essential)
+			if ( isset($work->volume) ) $listing->volume = $work->volume;
+			if ( isset($work->issue) )  $listing->issue =  $work->issue;
+			if ( isset($work->page) )  $listing->pages =  $work->page;
+			//get the unique identifier
+			if ( isset($work->URL) && isset($work->DOI) ) {
+				$listing->id_type = 'doi';
+				$listing->id = $work->DOI;
+				$listing->url = $work->URL;
+			} elseif ( isset($work->DOI) ) {
+				$listing->id_type = 'doi';
+				$listing->id = $work->DOI;
+				$listing->url = 'http://dx.doi.org/'.$work->DOI;
+			} elseif ( isset($work->URL) ) {
+				$listing->id_type = 'url';
+				$listing->id = $work->URL;
+				$listing->url = $work->URL;
+			} else {
+				$listing->url = '';
+			}
 			$this->papers[$paper_num] = new impactpubs_paper();
-			//Most of the needed info is stored in the XML node 'citation'
-			$citation = $work->getElementsByTagName('citation')->item(0)->nodeValue;
-			$citation_type = $work->getElementsByTagName('work-citation-type')->item(0)->nodeValue;
-			//$id_type will store the external identifier type: pmid, doi, or url. Other types may be possible
-			//Some works do not have these so we inialize to false
-			$id_type = FALSE;
-			if ( isset($work->getElementsByTagName('work-external-identifier-type')->item(0)->nodeValue) ){
-				$id_type = $work->getElementsByTagName('work-external-identifier-type')->item(0)->nodeValue;
-				if ($id_type == 'pmid') {
-					$this->papers[$paper_num]->id_type = 'pmid';
-					$this->papers[$paper_num]->id = $work->getElementsByTagName('work-external-identifier-id')->item(0)->nodevalue;	
-					$this->papers[$paper_num]->url = 'http://www.ncbi.nlm.nih.gov/pubmed/'.$pmid;
-				} elseif ($id_type == 'doi') {
-					$this->papers[$paper_num]->id_type = 'doi';
-					$this->papers[$paper_num]->id = $work->getElementsByTagName('work-external-identifier-id')->item(0)->nodeValue;
-					$this->papers[$paper_num]->url = 'http://dx.doi.org/'.
-					$work->getElementsByTagName('work-external-identifier-id')->item(0)->nodeValue;
-				} elseif ($url = $work->getElementsByTagName('url')->item(0)->nodevalue) {
-					$this->papers[$paper_num]->id_type = 'url';
-					$this->papers[$paper_num]->id = $url;
-					$this->papers[$paper_num]->url = $url;
-				}
-			}
-			if ($citation_type == 'bibtex'){
-				//initialize to avoid indexing errors
-				$bibtex_arr = array( 
-					'author' => '',
-					'year' => '',
-					'title' => '',
-				);
-				$bibtex_arr = array_merge( $bibtex_arr, impactpubs_parse_bibtex($citation) );
-				//some bibtex authors fields are stored with whitespace or semicolons trailing
-				//take those off
-				$authors = trim( $bibtex_arr['author'] );
-				$authors = trim( $authors, ';,' );
-				//'and' is often used between every author ... create an array and then
-				//format back to a single string to get rid of this
-				$authors_arr = explode( 'and', $authors );
-				$this->papers[$paper_num]->authors = impactpubs_author_format($authors_arr, FALSE);
-				$this->papers[$paper_num]->year = $bibtex_arr['year'];
-				$this->papers[$paper_num]->title = $bibtex_arr['title'];
-				//Storing either 'journal' or 'publisher' info in the 'journal' field
-				if ( isset( $bibtex_arr['journal'] ) ) $this->papers[$paper_num]->journal = $bibtex_arr['journal'];
-				elseif ( isset ( $bibtex_arr['publisher'] ) ) $this->papers[$paper_num]->journal = $bibtex_arr['publisher'];
-				//vol, number and pages are all "optional". Have created fallbacks to deal with the lack of any/all
-				if ( isset( $bibtex_arr['volume'] ) ) $this->papers[$paper_num]->volume = $bibtex_arr['volume'];
-				if ( isset( $bibtex_arr['number'] ) ) $this->papers[$paper_num]->issue = $bibtex_arr['number'];
-				if ( isset( $bibtex_arr['pages'] ) ) $this->papers[$paper_num]->pages = $bibtex_arr['pages'];
-				//last ditch attempt to find doi and url in the bibtex info if they haven't been found above.
-				if ( $id_type == FALSE && isset( $bibtex_arr['doi'] ) ) {
-					$this->papers[$paper_num]->id_type = 'doi';
-					$this->papers[$paper_num]->id = $bibtex_arr['doi'];
-					$this->papers[$paper_num]->url = 'http://dx.doi.org/'.$bibtex_arr['doi'];
-				} elseif ( $id_type == FALSE && isset( $bibtex_arr['url'] ) ) {
-					$this->papers[$paper_num]->id_type = 'url';
-					$this->papers[$paper_num]->id = $bibtex_arr['url'];
-					$this->papers[$paper_num]->url = $bibtex_arr['url'];
-				}
-			}
-			//other possible citation type fallbacks here
+			$this->papers[$paper_num] = $listing;
+			unset($listing);
 			$paper_num++;
 		} 
 	}
@@ -423,7 +410,9 @@ class impactpubs_publist {
 	function make_html(){
 		if ( !count( $this->papers ) ) return 'No publications';
 		$html = '';
-		if ($this->is_key) $html .= '<script type="text/javascript" src="http://impactstory.org/embed/v1/impactstory.js"></script>';
+		if ($this->is_key) {
+			$html .= '<script type="text/javascript" src="http://impactstory.org/embed/v1/impactstory.js"></script>';
+		}
 		foreach ($this->papers as $paper){
 			$html .= $paper->make_html($this->is_key);
 		}
@@ -458,7 +447,7 @@ impactpub_publist->import_from_pubmed()
 impactpub_publist->import_from_orcid()
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 class impactpubs_paper {
-	public $id_type, $id, $authors, $year, $title, $volume, $issue, $pages, $url;
+	public $id_type, $id, $authors, $year, $title, $volume, $issue, $pages, $url, $full_citation;
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	string html make_html(string $key) where $key is an impactstory key
 	Creates an HTML formatted string based on the properties of a paper.
@@ -471,19 +460,24 @@ class impactpubs_paper {
 	impactpubs_publist->make_html()
 	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 	function make_html($key = 0){
-		$html = '<p class = "publication" id = "'.$this->id.'"><span class = "authors">'.$this->authors.'</span>, ';
-		$html .= '<span class = "date">'.$this->year.'</span>. <span class = "title"><a href = "'.$this->url.'">';
-		$html .= $this->title.'</a></span> <span class = "journal">'.$this->journal.'</span>';
-		//if both a volume and an issue are present, format as : 152(4):3572-1380
-		if ($this->volume && $this->issue && $this->pages) {
-			$html .= ' <span class = "vol">'.$this->volume.'('.$this->issue.'):'.$this->pages.'</span>';
-		} //if no issue is present, format as 152:3572-1380
-		else if ($this->volume && $this->pages) {
-			$html .= ' <span class = "vol">'.$this->volume.':'.$this->pages.'</span>';
-		} else if ($this->volume) {
-			$html .= ' <span class = "vol">'.$this->volume.'</span>.';
-		} else { //if no volume or issue, assume online publication
-			$html .= ".";
+		$html = '<p class = "impactpubs_publication" id = "'.$this->id.'">';
+		if ( isset($this->full_citation) ){
+			echo $this->full_citation;
+		} else {
+			$html .= '<span class = "authors">'.$this->authors.'</span>, ';
+			$html .= '<span class = "date">'.$this->year.'</span>. <span class = "title"><a href = "'.$this->url.'">';
+			$html .= $this->title.'</a></span> <span class = "journal">'.$this->journal.'</span>';
+			//if both a volume and an issue are present, format as : 152(4):3572-1380
+			if ($this->volume && $this->issue && $this->pages) {
+				$html .= ' <span class = "vol">'.$this->volume.'('.$this->issue.'):'.$this->pages.'</span>';
+			} //if no issue is present, format as 152:3572-1380
+			elseif ($this->volume && $this->pages) {
+				$html .= ' <span class = "vol">'.$this->volume.':'.$this->pages.'</span>';
+			} elseif ($this->volume) {
+				$html .= ' <span class = "vol">'.$this->volume.'</span>.';
+			} else { //if no volume or issue, assume online publication
+				$html .= ".";
+			}
 		}
 		if ($key) {
 			$html .= '<span class = "impactstory-embed" data-show-logo = "false" data-id = "'.$this->id.'"';
@@ -502,13 +496,13 @@ Called by:
 impactpubs_publist->import_from_pubmed()
 impactpubs_publist->import_from_orcid()
 
-Takes an array of author names and returns a nicely formatted string.
+Takes an array of author names and returns a nicely formatted string. 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 function impactpubs_author_format($authors){
 	$output = "";
 	foreach ($authors as $author){
 		$author = trim($author); 
-		$output = $output.", ".$author;
+		$output = $output."; ".$author;
 	}
 	$output = trim($output, ';,');
 	return $output;
@@ -575,6 +569,9 @@ function impactpubs_parse_bibtex($bibtex_str){
 	return $extracted;
 }
 
+//todo: validation functions
+//cron job
+
 /*~~~~~~~~~~~~~~~~~~~~~~~~~
 string validation impactpubs_validate_pubsource(string $value)
 Called by: impactpubs_settings_form()
@@ -600,7 +597,7 @@ function impactpubs_validate_identifier($value, $pubsource = 'orcid'){
 			return '';
 		}
 	} else {
-		//for pubmed, just excluding ;, quotes, escape char to prevetn injection
+		//for pubmed, just excluding ;, quotes, escape char to prevent injection
 		if ( preg_match('/[\;\"\'\\\]/', $value) ) {
 			return 'Invalid Pubmed search string';
 		} else {
