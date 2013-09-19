@@ -93,4 +93,9 @@ on the left-hand side of your profile.
 
 - changed ORCiD retrieval to now retrieve from feed.labs.orcid-eu.org. As this service is also an ongoing project this may require some tweaks in the future.
 
+= 2.4=
+
+- changed remote requests to utilize WordPress HTTP API to support a wider variety of hosting sites
+
+
 ==

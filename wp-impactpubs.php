@@ -2,7 +2,7 @@
 /*
 Plugin Name: ImpactPubs
 Description: Display a list of publications with badges from ImpactStory.
-Version: 2.3
+Version: 2.4
 Author: Casey A. Ydenberg
 Author URI: www.brittle-star.com
 */
@@ -265,7 +265,8 @@ class impactpubs_publist {
 		$retrieve = "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&id=";
 		//make a call to pubmeds esearch utility, to retrieve pmids associated with an authors name or
 		//other search
-		if ( !$result = file_get_contents($search) ) die('There was a problem getting data from PubMed');
+		$result = wp_remote_retrieve_body( wp_remote_get($search) );
+		if ( !$result ) die('There was a problem getting data from PubMed');
 		//open a new DOM and dump the results from esearch
 		$dom = new DOMDocument();
 		$dom->loadXML($result);
@@ -339,8 +340,9 @@ class impactpubs_publist {
 	impactpubs_parse_bibtex()
 	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 	function import_from_orcid($orcid_id){
-		$retrieve = 'http://feed.labs.orcid-eu.org/'.$orcid_id.'.json';
-		if ( !$result = file_get_contents($retrieve) ) die('There was a problem getting data from ORCiD');
+		$search = 'http://feed.labs.orcid-eu.org/'.$orcid_id.'.json';
+		$result = wp_remote_retrieve_body( wp_remote_get($search) );
+		if ( !$result ) die('There was a problem getting data from ORCiD');
 		$works = json_decode($result);
 		$paper_num = 0;
 		foreach ($works as $work){
