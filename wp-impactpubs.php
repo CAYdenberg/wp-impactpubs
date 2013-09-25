@@ -2,7 +2,7 @@
 /*
 Plugin Name: ImpactPubs
 Description: Display a list of publications with badges from ImpactStory.
-Version: 2.4
+Version: 2.4.3
 Author: Casey A. Ydenberg
 Author URI: www.brittle-star.com
 */
@@ -125,12 +125,16 @@ function impactpubs_settings_form() {
 					<td><label for = "impactpubs_identifier">Identifier</label></td>
 					<td><input type = "text" name = "impactpubs_identifier" 
 					value = "<?php echo esc_attr__( $identifier ); ?>"></td>
+					<td><i>For ORCiD, this is a 16-digit number (e.g. 0000-0003-1419-2405).<br>
+				For PubMed, enter a unique query string (e.g. Ydenberg CA AND (Brandeis[affiliation] OR Princeton[affiliation]))</i></td>
 				</tr>
 				
 				<tr>
-				<td><label for = "impactpubs_impactstory_key">ImpactStory API key</label></td>
+				<td><label for = "impactpubs_impactstory_key">ImpactStory API key</label><br>
+				<i>(Optional)</i></td>
 				<td><input type = "text" name = "impactpubs_impactstory_key" 
 				value = "<?php echo esc_attr__( $is_key ); ?>"></td>
+				<td><i>Email <a href = "mailto:team@impactstory.org">team@impactstory.org</a> to request your <strong>free</strong> API key</i></td>
 				</tr>
 				
 				<tr>
@@ -281,7 +285,8 @@ class impactpubs_publist {
 				//the ending ",", if present, doesn't seem to have any adverse effects
 			}
 			//make a second call to pubmed's esummary utility
-			if ( !$result = file_get_contents($retrieve) ) die('There was a problem getting data from PubMed');
+			$result = wp_remote_retrieve_body( wp_remote_get($retrieve) );
+			if ( !$result ) die('There was a problem getting data from PubMed');
 			//load the results into a DOM, then retrieve the DocSum tags, which represent each paper that was found
 			$dom->loadXML($result);
 			$papers = $dom->getElementsByTagName('DocSum');
@@ -418,6 +423,9 @@ class impactpubs_publist {
 		foreach ($this->papers as $paper){
 			$html .= $paper->make_html($this->is_key);
 		}
+		if ($this->is_key) {
+			$html .= '<p class = "impactpubs_footnote"><i>Badges provided by ImpactStory. <a href = "http://www.impactstory.org">Learn more about altmetrics</a></i></p>';
+		}
 		return $html;
 	}
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -509,70 +517,6 @@ function impactpubs_author_format($authors){
 	$output = trim($output, ';,');
 	return $output;
 }
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-array $bibtex_elements parse_bibtex(string $bibtex_string)
-
-Called by:
-impactpubs_publist->import_from_orcid()
-impactpubs_parse_bibtex()
-
-Calls:
-impactpubs_parse_bibtex()
-
-An example of a bibtex formatted string is:
-@misc{dataciteafc902fa-dd50-4c54-9b93-5e773a62f76f, doi = {10.6084/M9.FIGSHARE.681737}, url = {http://dx.doi.org/10.6084/M9.FIGSHARE.681737}, author = {Martin Fenner, Jennifer Lin; }, publisher = {Figshare}, title = {Article-Level Metrics Hannover Medical School}, year = {2013} }
-This function looks for an opening '{', then performs a loop to find the paired '}'. It strips out specials chars, and 
-then takes everything before the '{' as the key. Everything between the braces is the value.
-When it encounters another opening '{', it strips the string down to the latest comma, and sends the new string 
-to another iteration of the same function.
-Key-value pairs are stored in the array $extracted, and this array is returned. When another instance of parse_bibtex is called,
-the returned values are joined. 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
-function impactpubs_parse_bibtex($bibtex_str){
-	//initialize the array that will be returned
-	$extracted = array();
-	//find the first {
-	$begin = strpos($bibtex_str, '{');
-	//the key is the string preceding the {, striped of some special chars
-	$key = substr($bibtex_str, 0, $begin);
-	$key = preg_replace('/[\@\s\=]/', '', $key);
-	//isolate the rest of the string (past the {)
-	$therest = substr($bibtex_str, $begin + 1);
-	//loop through $therest char by char to find the paired }
-	$position = 0;
-	$last_comma = 0;
-	$level = -1;
-	$str_length = strlen($therest);
-	while ( $level < 0 && $position < $str_length ) {
-		$character = substr( $therest, $position, 1);
-		if ( $character == ',' ){
-			//we keep track of the last comma to isolate other key-value pairs
-			$last_comma = $position;
-		}
-		if ( $character == '{' ){
-			$level--;
-			//isolate the new string from the last occurance of a comma
-			$new_string = substr($therest, $last_comma + 1);
-			//call impactpubs_parse_bibtex again on the new string
-			$extracted = array_merge( $extracted, impactpubs_parse_bibtex($new_string) );
-		} else if ( $character == '}'){
-			$level++;
-		}
-		$position++;
-	}
-	$value = substr($therest, 0, $position - 1);
-	$extracted[$key] = $value;
-	//isolate everything beyond the key-value pair
-	//$therest = substr( $therest, $position );
-	//this might not be necessary ...
-	//$extracted = array_merge( $extracted, impactpubs_parse_bibtex($therest) );
-	return $extracted;
-}
-
-//todo: validation functions
-//cron job
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~
 string validation impactpubs_validate_pubsource(string $value)
