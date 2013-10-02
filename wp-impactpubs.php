@@ -2,7 +2,7 @@
 /*
 Plugin Name: ImpactPubs
 Description: Display a list of publications with badges from ImpactStory.
-Version: 2.4.3
+Version: 2.5
 Author: Casey A. Ydenberg
 Author URI: www.brittle-star.com
 */
@@ -27,6 +27,7 @@ Author URI: www.brittle-star.com
 /*~~~~~~~~~~~~~~~~~~~~~~
 WORDPRESS HOOKS
 ~~~~~~~~~~~~~~~~~~~~~~*/
+
 register_activation_hook(__FILE__, 'impactpubs_install');
 register_deactivation_hook(__FILE__, 'impactpubs_uninstall');
 
@@ -35,20 +36,20 @@ add_action( 'admin_enqueue_scripts', 'impactpubs_scripts' );
 
 add_action('admin_menu', 'impactpubs_create_menu');
 
-add_action('impactpubs_weekly_update', 'impactpubs_update_lists');
+add_action('impactpubs_daily_update', 'impactpubs_update_lists');
 
 add_shortcode('publications', 'impactpubs_display_pubs');
 
 //installation procedures: 
-//schedule weekly event to update publication lists
+//schedule daily event to update publication lists
 function impactpubs_install() {
-	wp_schedule_event( current_time( 'timestamp' ), 'weekly', 'impactpubs_weekly_update' );
+	wp_schedule_event( current_time( 'timestamp' ), 'daily', 'impactpubs_daily_update' );
 }
 
 //uninstallation procedures:
 //remove scheduled tasks
 function impactpubs_uninstall() {
-	wp_clear_scheduled_hook( 'impactpubs_weekly_update' );
+	wp_clear_scheduled_hook( 'impactpubs_daily_update' );
 }
 
 //add javascript and stylesheets to both the admin page and front-end.
@@ -61,7 +62,7 @@ function impactpubs_scripts() {
 //create the admin menu
 //hooked by admin_menu event
 function impactpubs_create_menu() {
-	add_menu_page('My ImpactStory Publication Retrieval Information', 'My Pubs', 
+	add_menu_page('My ImpactPubs Publication Retrieval Information', 'My Publications', 
 	'edit_posts', __FILE__, 'impactpubs_settings_form');
 }
 
@@ -165,7 +166,7 @@ function impactpubs_settings_form() {
 }
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-hooked by impactpubs_weekly_update
+hooked by impactpubs_daily_update
 
 Update the publications lists for all users
 Pull out their pubsource, identifier, and IS key
@@ -180,11 +181,11 @@ function impactpubs_update_lists(){
 		//if no entry in meta database (user has not set up their profile), 
 		//then skip to the next one
 		if ( $pubsource == '' ) continue;
-		$identifier = get_user_meta( $id, '_impactpubs_pubsource', TRUE);
+		$identifier = get_user_meta( $id, '_impactpubs_identifier', TRUE);
 		$is_key = get_user_meta( $id, '_impactpubs_is_key', TRUE);
 		$impactpubs = new impactpubs_publist( $id, $is_key );
-		if ( $pubsource == 'pubmed' ) $impactspubs->import_from_pubmed( $identifier );
-		if ( $pubsource == 'orcid' ) $impactspubs->import_from_orcid( $identifier );
+		if ( $pubsource == 'pubmed' ) $impactpubs->import_from_pubmed( $identifier );
+		if ( $pubsource == 'orcid' ) $impactpubs->import_from_orcid( $identifier );
 		//only write to the database if data was retrieved (in case of problems in search)
 		if ( count( $impactpubs->papers ) > 0 ) $impactpubs->write_to_db();
 	}

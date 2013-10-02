@@ -69,7 +69,7 @@ on the left-hand side of your profile.
 
 - Initial release
 
-= 2.0=
+= 2.0 =
 
 - Added ORCiD search functionality
 
@@ -77,25 +77,28 @@ on the left-hand side of your profile.
 
 - Added weekly automatic updates
 
-= 2.1=
+= 2.1 =
 
 - orcid id's are now validated if they include letters, numbers, or dashes
 
 - Up to 1000 records can now be retrieved from PubMed (this should be large enough to include anyone, but not so large so as to invite a near-infinite loop if an inappropriate search is done.
 
-= 2.2=
+= 2.2 =
 
 - simplified author formatting function
 
 - added css and js to adjust the line height to fix a spacing issue with very small fonts
 
-= 2.3=
+= 2.3 =
 
 - changed ORCiD retrieval to now retrieve from feed.labs.orcid-eu.org. As this service is also an ongoing project this may require some tweaks in the future.
 
-= 2.4=
+= 2.4 =
 
 - changed remote requests to utilize WordPress HTTP API to support a wider variety of hosting sites
 
+= 2.5 =
+
+- fixed automatic updates, changed to daily cron
 
 ==
