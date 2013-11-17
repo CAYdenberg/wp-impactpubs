@@ -9,7 +9,6 @@ jQuery(document).ready(function() {
 	if ( fs_int * 1.5 > 23 ) {
 		lh_int = fs_int * 1.5;
 		lh_str = lh_int + 'px'
-		console.log(lh_str);
 		jQuery('.impactpubs_publication').css('line-height', lh_str);
 	}
 	

@@ -2,6 +2,10 @@
 	line-height: 23px;
 }
 
-.impactpubs_publication .journal {
+.impactpubs_publication .ip-journal {
 	font-style: italic;
+}
+
+.impactpubs_footnote {
+	font-size: smaller;
 }

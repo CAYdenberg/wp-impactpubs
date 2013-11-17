@@ -2,9 +2,9 @@
 /*
 Plugin Name: ImpactPubs
 Description: Display a list of publications with badges from ImpactStory.
-Version: 2.5
+Version: 2.6
 Author: Casey A. Ydenberg
-Author URI: www.brittle-star.com
+Author URI: www.caseyy.org
 */
 
 /*
@@ -353,7 +353,7 @@ class impactpubs_publist {
 		$paper_num = 0;
 		foreach ($works as $work){
 			$listing = new impactpubs_paper();
-			//get the publication year (essential)
+			//get the publication year (not essential)
 			if ( isset($work->issued->{'date-parts'}[0][0]) ) {
 				$listing->year = $work->issued->{'date-parts'}[0][0];
 			} else {
@@ -365,13 +365,11 @@ class impactpubs_publist {
 			} else {
 				continue;
 			}
-			//get the journal/publisher/book series (essential)
+			//get the journal/publisher/book series (not essential)
 			if ( isset( $work->{'container-title'} ) ) {
 				$listing->journal = $work->{'container-title'};
 			} else if ( isset($work->publisher) ) {
 				$listing->journal = $work->publisher;
-			} else {
-				continue;
 			}
 			//get the authors list (essential)
 			if ( isset($work->author) ) {
@@ -401,6 +399,8 @@ class impactpubs_publist {
 				$listing->id = $work->URL;
 				$listing->url = $work->URL;
 			} else {
+				$listing->id_type = '';
+				$listing->id = '';
 				$listing->url = '';
 			}
 			$this->papers[$paper_num] = new impactpubs_paper();
@@ -475,22 +475,40 @@ class impactpubs_paper {
 		if ( isset($this->full_citation) ){
 			echo $this->full_citation;
 		} else {
-			$html .= '<span class = "authors">'.$this->authors.'</span>, ';
-			$html .= '<span class = "date">'.$this->year.'</span>. <span class = "title"><a href = "'.$this->url.'">';
-			$html .= $this->title.'</a></span> <span class = "journal">'.$this->journal.'</span>';
-			//if both a volume and an issue are present, format as : 152(4):3572-1380
-			if ($this->volume && $this->issue && $this->pages) {
-				$html .= ' <span class = "vol">'.$this->volume.'('.$this->issue.'):'.$this->pages.'</span>';
-			} //if no issue is present, format as 152:3572-1380
-			elseif ($this->volume && $this->pages) {
-				$html .= ' <span class = "vol">'.$this->volume.':'.$this->pages.'</span>';
-			} elseif ($this->volume) {
-				$html .= ' <span class = "vol">'.$this->volume.'</span>.';
-			} else { //if no volume or issue, assume online publication
-				$html .= ".";
+			
+			//the authors
+			if ( isset($this->authors) ) {
+				$html .= '<span class = "ip-authors">'.$this->authors.'</span>, ';
+			}
+			$html .= '<span class = "ip-date">'.$this->year.'</span>'; 	
+			//the title (required)
+			$html .= '<span class = "ip-title">';
+			if ($this->url != '') {
+				$html .= '<a href = "'.$this->url.'">'.$this->title.'</a>';
+			} else {
+				$html .= $this->title.'</span>';
+			}
+			$html .= '</span>. ';
+			
+			//the journal
+			if ( isset($this->journal) ) {
+				$html .= '<span class = "ip-journal">'.$this->journal.'</span>';
+				//if both a volume and an issue are present, format as : 152(4):3572-1380
+				if ($this->volume && $this->issue && $this->pages) {
+					$html .= ' <span class = "ip-vol">'.$this->volume.'('.$this->issue.'):'.$this->pages.'</span>';
+				} //if no issue is present, format as 152:3572-1380
+				elseif ($this->volume && $this->pages) {
+					$html .= ' <span class = "ip-vol">'.$this->volume.':'.$this->pages.'</span>';
+				} elseif ($this->volume) {
+					$html .= ' <span class = "ip-vol">'.$this->volume.'</span>.';
+				} else { //if no volume or issue, assume online publication
+					$html .= ".";
+				}	
 			}
 		}
-		if ($key) {
+		
+		//the impactstory key
+		if ($key && $this->id_type != '' && $this->id != '') {
 			$html .= '<span class = "impactstory-embed" data-show-logo = "false" data-id = "'.$this->id.'"';
 			$html .= 'data-id-type = "'.$this->id_type.'" data-api-key="'.$key.'">';
 		}

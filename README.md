@@ -101,4 +101,12 @@ on the left-hand side of your profile.
 
 - fixed automatic updates, changed to daily cron
 
+= 2.6 =
+
+- Changed naming of span classes to avoid conflicts
+
+- made ORCiD parser accept articles without a journal or a date. Now we only require a title and at least one author.
+
+- Tweaked how URLs and DOIs are handled
+
 ==
