@@ -2,7 +2,7 @@
 /*
 Plugin Name: ImpactPubs
 Description: Display a list of publications with badges from ImpactStory.
-Version: 2.6
+Version: 2.6.1
 Author: Casey A. Ydenberg
 Author URI: www.caseyy.org
 */
@@ -480,7 +480,9 @@ class impactpubs_paper {
 			if ( isset($this->authors) ) {
 				$html .= '<span class = "ip-authors">'.$this->authors.'</span>, ';
 			}
-			$html .= '<span class = "ip-date">'.$this->year.'</span>'; 	
+			
+			//the date (required)
+			$html .= '<span class = "ip-date">'.$this->year.'</span>. '; 	
 			//the title (required)
 			$html .= '<span class = "ip-title">';
 			if ($this->url != '') {
