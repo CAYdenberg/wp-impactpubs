@@ -1,6 +1,7 @@
 <?php
 /*
 Plugin Name: ImpactPubs
+Plugin URI: www.mylabwebsite.com
 Description: Display a list of publications with badges from ImpactStory.
 Version: 2.6.2
 Author: Casey A. Ydenberg
