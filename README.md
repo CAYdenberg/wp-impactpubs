@@ -3,6 +3,9 @@
 I'll therefore be retiring the ImpactStory portion of this code and building something new using that endpoint. The good news is there shouldn't be a need to make to remote calls to multiple services: ImpactStory can now be the one-stop shop for your publication list.**
 
 Search PubMed or ORCiD. Display the results with shortcode.
+=======
+
+Search PubMed or ORCiD and attach ImpactStory badges. Display the results with shortcode.
 
 == Description ==
 
@@ -51,7 +54,12 @@ the papers you would like to display.
 1. Alternatively, go to ORCiD (orcid.org) and create your profile. Copy down the 16 digit number
 on the left-hand side of your profile.
 
+<<<<<<< HEAD
 1. Enter your preferred search method, the search string or ORCiD number.
+=======
+1. To add Altmetrics, write to team@impactstory.org and ask for a free API key.
+
+1. Enter your preferred search method, the search string or ORCiD number, and the API key into the settings page on the dashboard.
 
 1. Wherever you'd like the publications list to appear, type [publications name=<i>loginname</i>], where *loginname* is your WordPress login name.
 
