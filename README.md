@@ -1,5 +1,8 @@
+**Note: ImpactStory has retired their embeddable JavaScript widget, but it looks like they are now providing full profiles in JSON format.
 
-Search PubMed or ORCiD and attach ImpactStory badges. Display the results with shortcode.
+I'll therefore be retiring the ImpactStory portion of this code and building something new using that endpoint. The good news is there shouldn't be a need to make to remote calls to multiple services: ImpactStory can now be the one-stop shop for your publication list.**
+
+Search PubMed or ORCiD. Display the results with shortcode.
 
 == Description ==
 
@@ -38,15 +41,6 @@ First, go to orcid.org and create your publication profile (very easy to do).
 On the left side of your profile, you should see a 16 digit number. Copy this
 number down to access your profile from ImpactPubs.
 
-**To use badges from ImpactStory**: go to http://impactstory.org/api-docs and request an API key. The key is
-simply entered into the dashboard as another parameter.
-
-NOTE: This Plugin works by making a remote call to the National Library of Medicine's E-Utilities.
-(http://eutils.ncbi.nlm.nih.gov/entrez/eutils/), to ORCiD (http://feed.labs.orcid-eu.org/) and to ImpactStory (http://impactstory.org/embed/).
-
-The creator(s) of the Plugin assume no responsibility for the accuracy or cleanliness of the data retrieved 
-from these remote services. Use at your own risk.
-
 ==Installation==
 
 1. Download the Plugin and activate it.
@@ -57,9 +51,7 @@ the papers you would like to display.
 1. Alternatively, go to ORCiD (orcid.org) and create your profile. Copy down the 16 digit number
 on the left-hand side of your profile.
 
-1. To add Altmetrics, write to team@impactstory.org and ask for a free API key.
-
-1. Enter your preferred search method, the search string or ORCiD number, and the API key into the settings page on the dashboard.
+1. Enter your preferred search method, the search string or ORCiD number.
 
 1. Wherever you'd like the publications list to appear, type [publications name=<i>loginname</i>], where *loginname* is your WordPress login name.
 
