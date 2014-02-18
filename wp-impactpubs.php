@@ -4,7 +4,7 @@ Plugin Name: ImpactPubs
 Plugin URI: www.mylabwebsite.com
 =======
 Description: Display a list of publications with badges from ImpactStory.
-Version: 2.6.2
+Version: 2.7
 Author: Casey A. Ydenberg
 Author URI: www.caseyy.org
 */
@@ -58,7 +58,6 @@ function impactpubs_uninstall() {
 //hooked by 'wp_enqueue_scripts' and 'admin_enqueue_scripts'
 function impactpubs_scripts() {
 	wp_enqueue_style( 'ip_style', plugins_url( 'ip_style.css', __FILE__ ) );
-	wp_enqueue_script( 'ip_script', plugins_url( 'ip_script.js' , __FILE__) );
 }
 
 //create the admin menu
@@ -80,11 +79,9 @@ function impactpubs_settings_form() {
 		check_admin_referer( 'impactpubs_nonce' );
 		$pubsource = $_POST['impactpubs_pubsource'];
 		$identifier = $_POST['impactpubs_identifier'];
-		$is_key = $_POST['impactpubs_impactstory_key'];
 		//keep track of validation errors
 		$valid .= impactpubs_validate_pubsource($pubsource);
 		$valid .= impactpubs_validate_identifier($identifier, $pubsource);
-		$valid .= impactpubs_validate_is_key($is_key);
 		if ( $valid == '' ) {
 			if ( !add_user_meta($user, '_impactpubs_pubsource', $pubsource, TRUE ) ) {
 				update_user_meta($user, '_impactpubs_pubsource', $pubsource);
@@ -92,16 +89,12 @@ function impactpubs_settings_form() {
 			if ( !add_user_meta($user, '_impactpubs_identifier', $identifier, TRUE ) ) {
 				update_user_meta($user, '_impactpubs_identifier', $identifier );
 			}
-			if ( !add_user_meta($user, '_impactpubs_is_key', $is_key, TRUE ) ) {
-				update_user_meta($user, '_impactpubs_is_key', $is_key);
-			}
 		}
 	} else {
 		//if no NEW data has been submitted, use values from the database as defaults in the form
 		$pubsource = get_user_meta( $user, '_impactpubs_pubsource', TRUE );
 		if ( $pubsource == '') $pubsource = 'pubmed';
 		$identifier = get_user_meta( $user, '_impactpubs_identifier', TRUE );
-		$is_key = get_user_meta( $user, '_impactpubs_is_key', TRUE );
 		$identifier = stripslashes($identifier);
 	}
 	?>
@@ -133,14 +126,6 @@ function impactpubs_settings_form() {
 				</tr>
 				
 				<tr>
-				<td><label for = "impactpubs_impactstory_key">ImpactStory API key</label><br>
-				<i>(Optional)</i></td>
-				<td><input type = "text" name = "impactpubs_impactstory_key" 
-				value = "<?php echo esc_attr__( $is_key ); ?>"></td>
-				<td><i>Email <a href = "mailto:team@impactstory.org">team@impactstory.org</a> to request your <strong>free</strong> API key</i></td>
-				</tr>
-				
-				<tr>
 					<td></td><td>
 					<input type = "submit" name = "submit" value = "Save Settings" class = "button-primary" /></td>
 				</tr>
@@ -149,19 +134,22 @@ function impactpubs_settings_form() {
 	</div>
 	
 	<div class = "wrap" id = "impactpubs_wrapper">		
-		<h2>When you type <i>[publications name=<?php echo $user_ob->user_login; ?>]</i>,
-		the following will be shown:</h2>
-			
 		<?php
-			$impactpubs = new impactpubs_publist($user, $is_key );
-			if ( $pubsource == 'pubmed' ) {
-				$impactpubs->import_from_pubmed( $identifier );	
-			} else if ( $pubsource == 'orcid' ) {
-				$impactpubs->import_from_orcid( $identifier );
+			$impactpubs = new impactpubs_publist( $user );
+			try {
+				if ( $pubsource == 'pubmed' ) {
+					$impactpubs->import_from_pubmed( $identifier );	
+				} else if ( $pubsource == 'orcid' ) {
+					$impactpubs->import_from_orcid( $identifier );
+				}
+				echo '<h2>When you type <i>[publications name='.$user_ob->user_login.']</i>, the following will be shown:</h2>';
+				echo $impactpubs->make_html();
+				$impactpubs->write_to_db();
+			} catch (Exception $e) {
+				echo '<h2>Warning: There was a problem getting data from the source. The remote server may be down, or there might be an error somewhere. Please try again in a few minutes.';
 			}
-			echo $impactpubs->make_html();
-			$impactpubs->write_to_db();
 		?>
+		
 	</div>
 	
 	<?php
@@ -184,10 +172,14 @@ function impactpubs_update_lists(){
 		//then skip to the next one
 		if ( $pubsource == '' ) continue;
 		$identifier = get_user_meta( $id, '_impactpubs_identifier', TRUE);
-		$is_key = get_user_meta( $id, '_impactpubs_is_key', TRUE);
-		$impactpubs = new impactpubs_publist( $id, $is_key );
-		if ( $pubsource == 'pubmed' ) $impactpubs->import_from_pubmed( $identifier );
-		if ( $pubsource == 'orcid' ) $impactpubs->import_from_orcid( $identifier );
+		$impactpubs = new impactpubs_publist( $id );
+		try {
+			if ( $pubsource == 'pubmed' ) $impactpubs->import_from_pubmed( $identifier );
+			if ( $pubsource == 'orcid' ) $impactpubs->import_from_orcid( $identifier );
+		} catch (Exception $e) {
+			//this is a quiet death, since it will occur during a cron
+			die();
+		}
 		//only write to the database if data was retrieved (in case of problems in search)
 		if ( count( $impactpubs->papers ) > 0 ) $impactpubs->write_to_db();
 	}
@@ -227,26 +219,24 @@ function impactpubs_display_pubs($shortcode_atts) {
 
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-object impactpubs_publist(string $user, string $is_key)
+object impactpubs_publist(string $user)
 Properties: 
 user - the current user's name, 
 papers - an array of papers belonging to that user, 
-is_key - the impactstory key for that user (optional)
 
 Methods:
 import_from_pubmed(string $pubmed_query)
 import_from_orcid(string $orcid_id)
-make_html($key)
+make_html()
 
 Declared by:
 impactpub_settings_form
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 class impactpubs_publist {
-	public $usr, $papers = array(), $is_key;
-	function __construct($usr, $is_key = ''){
+	public $usr, $papers = array();
+	function __construct($usr){
 		$this->usr = $usr;
-		if ( $is_key != '' ) $this->is_key = $is_key;
 	}
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	Retrieve paper properties from a publication list.
@@ -273,7 +263,9 @@ class impactpubs_publist {
 		//make a call to pubmeds esearch utility, to retrieve pmids associated with an authors name or
 		//other search
 		$result = wp_remote_retrieve_body( wp_remote_get($search) );
-		if ( !$result ) die('There was a problem getting data from PubMed');
+		if ( !$result ) {
+			throw new Exception('NoConnect');
+		}
 		//open a new DOM and dump the results from esearch
 		$dom = new DOMDocument();
 		$dom->loadXML($result);
@@ -289,7 +281,9 @@ class impactpubs_publist {
 			}
 			//make a second call to pubmed's esummary utility
 			$result = wp_remote_retrieve_body( wp_remote_get($retrieve) );
-			if ( !$result ) die('There was a problem getting data from PubMed');
+			if ( !$result ) {
+				throw new Exception('NoConnect');
+			}
 			//load the results into a DOM, then retrieve the DocSum tags, which represent each paper that was found
 			$dom->loadXML($result);
 			$papers = $dom->getElementsByTagName('DocSum');
@@ -350,7 +344,9 @@ class impactpubs_publist {
 	function import_from_orcid($orcid_id){
 		$search = 'http://feed.labs.orcid-eu.org/'.$orcid_id.'.json';
 		$result = wp_remote_retrieve_body( wp_remote_get($search) );
-		if ( !$result ) die('There was a problem getting data from ORCiD');
+		if ( !$result ) {
+			throw new Exception('NoConnect');
+		}
 		$works = json_decode($result);
 		$paper_num = 0;
 		foreach ($works as $work){
@@ -418,27 +414,28 @@ class impactpubs_publist {
 	Calls impactpubs_paper->make_html()
 	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 	function make_html(){
-		if ( !count( $this->papers ) ) return 'No publications';
+		if ( !count( $this->papers ) ) return FALSE;
 		$html = '';
-		if ($this->is_key) {
-			$html .= '<script type="text/javascript" src="http://impactstory.org/embed/v1/impactstory.js"></script>';
-		}
 		foreach ($this->papers as $paper){
-			$html .= $paper->make_html($this->is_key);
-		}
-		if ($this->is_key) {
-			$html .= '<p class = "impactpubs_footnote"><i>Badges provided by ImpactStory. <a href = "http://www.impactstory.org">Learn more about altmetrics</a></i></p>';
+			$html .= $paper->make_html();
 		}
 		return $html;
 	}
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~
 	write_to_db()
 	Writes the html (only) of the retrieved search as metadata
-	Called by impactpubs_settings_for()
+	Called by impactpubs_settings_form()
+	
+	This function returns FALSE if no publications are found,
+	and does not write to the database. This avoid overwriting
+	existing publications during an automatic update.
 	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 	function write_to_db(){
 		$user = $this->usr;
 		$value = $this->make_html();
+		if (!$value) {
+			return FALSE;
+		}
 		if ( !add_user_meta($user, '_impactpubs_html', $value, TRUE ) ) {
 			update_user_meta($user, '_impactpubs_html', $value);
 		}
@@ -472,7 +469,7 @@ class impactpubs_paper {
 	Called by:
 	impactpubs_publist->make_html()
 	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-	function make_html($key = 0){
+	function make_html(){
 		$html = '<p class = "impactpubs_publication" id = "'.$this->id.'">';
 		if ( isset($this->full_citation) ){
 			echo $this->full_citation;
@@ -509,12 +506,6 @@ class impactpubs_paper {
 					$html .= ".";
 				}	
 			}
-		}
-		
-		//the impactstory key
-		if ($key && $this->id_type != '' && $this->id != '') {
-			$html .= '<span class = "impactstory-embed" data-show-logo = "false" data-id = "'.$this->id.'"';
-			$html .= 'data-id-type = "'.$this->id_type.'" data-api-key="'.$key.'">';
 		}
 		$html .= "</p>";
 		return $html;
@@ -572,20 +563,6 @@ function impactpubs_validate_identifier($value, $pubsource = 'orcid'){
 		} else {
 			return '';		
 		}
-	}
-}
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~
-string validation impactpubs_validate_is_key(string $value)
-Called by: impactpubs_settings_form()
-Letters, numbers, and the - are allowed
-~~~~~~~~~~~~~~~~~~~~~~~~~*/
-function impactpubs_validate_is_key($value){
-	//impactstory key contains only letters, numbers, and the dash (-) symbol
-	if ( preg_match('/[^A-Za-z0-9\-]/', $value) ) {
-		return 'Invalid ImpactStory API key';	
-	} else {
-		return '';
 	}
 }
 
