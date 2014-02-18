@@ -142,12 +142,22 @@ function impactpubs_settings_form() {
 				} else if ( $pubsource == 'orcid' ) {
 					$impactpubs->import_from_orcid( $identifier );
 				}
-				echo '<h2>When you type <i>[publications name='.$user_ob->user_login.']</i>, the following will be shown:</h2>';
-				echo $impactpubs->make_html();
-				$impactpubs->write_to_db();
+					
 			} catch (Exception $e) {
 				echo '<h2>Warning: There was a problem getting data from the source. The remote server may be down, or there might be an error somewhere. Please try again in a few minutes.';
+				exit();
 			}
+			
+			if ( $html = $impactpubs->make_html() ) {
+				echo '<h2>When you type <i>[publications name='.$user_ob->user_login.']</i>, the following will be shown:</h2>';
+				echo $html;
+				if ( !add_user_meta($user, '_impactpubs_html', $html, TRUE ) ) {
+					update_user_meta($user, '_impactpubs_html', $html);
+				}
+			} else {
+				echo '<h2>Search came up empty. Sure you have the right identifier?</h2>';
+			}
+
 		?>
 		
 	</div>
@@ -181,7 +191,11 @@ function impactpubs_update_lists(){
 			die();
 		}
 		//only write to the database if data was retrieved (in case of problems in search)
-		if ( count( $impactpubs->papers ) > 0 ) $impactpubs->write_to_db();
+		if ( $html = $impactpubs->make_html() ) {
+			if ( !add_user_meta($user, '_impactpubs_html', $html, TRUE ) ) {
+				update_user_meta($user, '_impactpubs_html', $html);
+			}
+		}
 	}
 }
 
@@ -420,25 +434,6 @@ class impactpubs_publist {
 			$html .= $paper->make_html();
 		}
 		return $html;
-	}
-	/*~~~~~~~~~~~~~~~~~~~~~~~~~~
-	write_to_db()
-	Writes the html (only) of the retrieved search as metadata
-	Called by impactpubs_settings_form()
-	
-	This function returns FALSE if no publications are found,
-	and does not write to the database. This avoid overwriting
-	existing publications during an automatic update.
-	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-	function write_to_db(){
-		$user = $this->usr;
-		$value = $this->make_html();
-		if (!$value) {
-			return FALSE;
-		}
-		if ( !add_user_meta($user, '_impactpubs_html', $value, TRUE ) ) {
-			update_user_meta($user, '_impactpubs_html', $value);
-		}
 	}
 }
 

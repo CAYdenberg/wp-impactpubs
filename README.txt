@@ -7,21 +7,23 @@ Stable tag: tags
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-
-
 Search PubMed or ORCiD and attach ImpactStory badges. Display the results with shortcode.
 
 == Description ==
+
+Note: ImpactStory has retired their JavaScript widget, which this plugin depended on for the altmetrics badges.
+
+The good news is, they have replaced it with something better, but I need some time to work on using that as an endpoint.
+
+Until then, you can still use this to create a publications list from PubMed or ORCiD.
+
+
 
 This is a WordPress plugin to automatically display a publication profile on a website.
 
 Results can be pulled from PubMed or ORCiD, and will be automatically updated once a week.
 
 One profile can be created per blog user.
-
-Altmetrics badges can be appended to each result by obtaining an API key from ImpactStory (www.impactstory.org).
-The Pubmed query and API information can be entered into a special Settings page created in the dashboard. 
-The publications can be listed on a particular page (or post!) by entering the shortcode:
 
 [publications]
 
@@ -66,8 +68,6 @@ the papers you would like to display.
 
 1. Alternatively, go to ORCiD (orcid.org) and create your profile. Copy down the 16 digit number
 on the left-hand side of your profile.
-
-1. To add Altmetrics, write to team@impactstory.org and ask for a free API key.
 
 1. Enter your preferred search method, the search string or ORCiD number, and the API key into the settings page on the dashboard.
 
@@ -122,5 +122,11 @@ on the left-hand side of your profile.
 - Changed naming of span classes to avoid conflicts
 
 - made ORCiD parser accept articles without a journal or a date. Now we only require a title and at least one author
+
+= 2.7 =
+
+- Retired all the ImpactStory code.
+
+- Improved error handling (when remote service can't be contacted) a bit.
  
 ==
