@@ -79,6 +79,10 @@ function impactpubs_settings_form() {
 		check_admin_referer( 'impactpubs_nonce' );
 		$pubsource = $_POST['impactpubs_pubsource'];
 		$identifier = $_POST['impactpubs_identifier'];
+		//for impactstory searches, remove all whitespace from the identifier
+		if ( $pubsource == 'impactstory' ) {
+			$identifier = preg_replace( '/\s+/', '', $identifier );
+		}
 		//keep track of validation errors
 		$valid .= impactpubs_validate_pubsource($pubsource);
 		$valid .= impactpubs_validate_identifier($identifier, $pubsource);
@@ -114,7 +118,10 @@ function impactpubs_settings_form() {
 					<td><input type = "radio" name = "impactpubs_pubsource" value = "pubmed" 
 					<?php if ( $pubsource == 'pubmed' ) echo 'checked'; ?> />PubMed<br />				
 					<input type = "radio" name = "impactpubs_pubsource" value = "orcid" 
-					<?php if ( $pubsource == 'orcid' ) echo 'checked'; ?> />ORCiD
+					<?php if ( $pubsource == 'orcid' ) echo 'checked'; ?> />ORCiD<br />
+					
+					<input type = "radio" name = "impactpubs_pubsource" value = "impactstory"
+					<?php if ( $pubsource == 'impactstory' ) echo 'checked'; ?> />ImpactStory 
 				</tr>
 				
 				<tr>
@@ -122,7 +129,7 @@ function impactpubs_settings_form() {
 					<td><input type = "text" name = "impactpubs_identifier" 
 					value = "<?php echo esc_attr__( $identifier ); ?>"></td>
 					<td><i>For ORCiD, this is a 16-digit number (e.g. 0000-0003-1419-2405).<br>
-				For PubMed, enter a unique query string (e.g. Ydenberg CA AND (Brandeis[affiliation] OR Princeton[affiliation]))</i></td>
+				For PubMed, enter a unique query string (e.g. Ydenberg CA AND (Brandeis[affiliation] OR Princeton[affiliation])</i></td>
 				</tr>
 				
 				<tr>
@@ -137,12 +144,7 @@ function impactpubs_settings_form() {
 		<?php
 			$impactpubs = new impactpubs_publist( $user );
 			try {
-				if ( $pubsource == 'pubmed' ) {
-					$impactpubs->import_from_pubmed( $identifier );	
-				} else if ( $pubsource == 'orcid' ) {
-					$impactpubs->import_from_orcid( $identifier );
-				}
-					
+				$impactpubs->import( $pubsource, $identifier );
 			} catch (Exception $e) {
 				echo '<h2>Warning: There was a problem getting data from the source. The remote server may be down, or there might be an error somewhere. Please try again in a few minutes.';
 				exit();
@@ -184,8 +186,7 @@ function impactpubs_update_lists(){
 		$identifier = get_user_meta( $id, '_impactpubs_identifier', TRUE);
 		$impactpubs = new impactpubs_publist( $id );
 		try {
-			if ( $pubsource == 'pubmed' ) $impactpubs->import_from_pubmed( $identifier );
-			if ( $pubsource == 'orcid' ) $impactpubs->import_from_orcid( $identifier );
+			$impactpubs->import( $pubsource, $identifier ); 
 		} catch (Exception $e) {
 			//this is a quiet death, since it will occur during a cron
 			die();
@@ -251,6 +252,20 @@ class impactpubs_publist {
 	public $usr, $papers = array();
 	function __construct($usr){
 		$this->usr = $usr;
+	}
+	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	
+	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+	function import( $pubsource, $identifier ) {
+		if ( $pubsource == 'pubmed' ) {
+			$this->import_from_pubmed( $identifier );
+		} else if ( $pubsource == 'orcid' ) {
+			$this->import_from_orcid( $identifier );
+		} else if ( $pubsource == 'impactstory' ) {
+			$this->import_from_impactstory( $identifier );
+		} else {
+			throw new Exception('NoIdentifier');
+		}
 	}
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	Retrieve paper properties from a publication list.
@@ -421,6 +436,46 @@ class impactpubs_publist {
 			$paper_num++;
 		} 
 	}
+	function import_from_impactstory( $identifier ) {
+		$search = 'http://www.impactstory.org/user/'.$identifier.'/products';
+		$result = wp_remote_retrieve_body( wp_remote_get($search) );
+		if ( !$result ) {
+			throw new Exception('NoConnect');
+		}
+		$works = json_decode($result);
+		$paper_num = 0;
+		foreach ( $works as $work ) {
+			$listing = new impactpubs_paper();
+			//get the year
+			if ( isset($work->aliases->biblio[0]->year) ) {
+				$listing->year = $work->aliases->biblio[0]->year;
+			}
+			//get the title
+			if ( isset($work->aliases->biblio[0]->title) ) {
+				$listing->title = $work->aliases->biblio[0]->title;
+			}
+			//get the authors
+			if ( isset($work->aliases->biblio[0]->authors) ) {
+				$listing->authors = $work->aliases->biblio[0]->authors;
+			}
+			//get the url
+			if ( isset($work->aliases->url[0]) ) {
+				$listing->url = $work->aliases->url[0];
+			}
+			//get the ID
+			if ( isset($work->aliases->doi[0]) ) {
+				$listing->id_type = 'doi';
+				$listing->id = $work->aliases->doi[0];
+			} else if ( isset($work->aliases->pmid[0]) ) {
+				$listing->id_type = 'pmid';
+				$listing->id = $work->aliases->pmid[0];
+			}
+			$this->papers[$paper_num] = new impactpubs_paper();
+			$this->papers[$paper_num] = $listing;
+			unset($listing);
+			$paper_num++;
+		}
+	}
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	string $html make_html()
 	creates the HTML for a publication list.
@@ -535,6 +590,7 @@ function impactpubs_validate_pubsource($value){
 	$valid = FALSE;
 	if ( $value == 'pubmed' ) $valid = TRUE;
 	if ( $value == 'orcid') $valid = TRUE;
+	if ( $value == 'impactstory' ) $valid = TRUE;
 	if ( $valid ) return '';
 	else return 'Invalid publication source supplied';
 }
@@ -551,12 +607,18 @@ function impactpubs_validate_identifier($value, $pubsource = 'orcid'){
 		} else {
 			return '';
 		}
-	} else {
+	} else if ( $pubsource == 'pubmed' ){
 		//for pubmed, just excluding ;, quotes, escape char to prevent injection
 		if ( preg_match('/[\;\"\'\\\]/', $value) ) {
-			return 'Invalid Pubmed search string';
+			return 'Invalid PubMed search';
 		} else {
 			return '';		
+		}
+	} else if ( $pubsource == 'impactstory' ) {
+		if ( preg_match('/[^A-Za-z0-9]/', $value ) ) {
+			return 'Invalid ImpactStory search';
+		} else {
+			return '';
 		}
 	}
 }
