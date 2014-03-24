@@ -476,6 +476,9 @@ class impactpubs_publist {
 			$paper_num++;
 		}
 	}
+	function sort_papers() {
+		usort($this->papers, 'impactpubs_compare_papers');
+	}
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	string $html make_html()
 	creates the HTML for a publication list.
@@ -485,6 +488,7 @@ class impactpubs_publist {
 	function make_html(){
 		if ( !count( $this->papers ) ) return FALSE;
 		$html = '';
+		$this->sort_papers();
 		foreach ($this->papers as $paper){
 			$html .= $paper->make_html();
 		}
@@ -620,6 +624,14 @@ function impactpubs_validate_identifier($value, $pubsource = 'orcid'){
 		} else {
 			return '';
 		}
+	}
+}
+
+function impactpubs_compare_papers($a, $b) {
+	if ( $a->year == $b->year ) {
+		return 0;
+	} else {
+		return ( $a->year < $b->year ) ? 1 : -1;
 	}
 }
 
