@@ -249,7 +249,7 @@ impactpub_settings_form
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 class impactpubs_publist {
-	public $usr, $papers = array();
+	public $usr, $source, $papers = array();
 	function __construct($usr){
 		$this->usr = $usr;
 	}
@@ -257,6 +257,7 @@ class impactpubs_publist {
 	
 	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 	function import( $pubsource, $identifier ) {
+		$this->source = $pubsource;
 		if ( $pubsource == 'pubmed' ) {
 			$this->import_from_pubmed( $identifier );
 		} else if ( $pubsource == 'orcid' ) {
@@ -447,20 +448,28 @@ class impactpubs_publist {
 		foreach ( $works as $work ) {
 			$listing = new impactpubs_paper();
 			//get the year
-			if ( isset($work->aliases->biblio[0]->year) ) {
-				$listing->year = $work->aliases->biblio[0]->year;
+			if ( isset($work->biblio->year) ) {
+				$listing->year = $work->biblio->year;
 			}
 			//get the title
-			if ( isset($work->aliases->biblio[0]->title) ) {
-				$listing->title = $work->aliases->biblio[0]->title;
+			if ( isset($work->biblio->title) ) {
+				$listing->title = $work->biblio->title;
 			}
 			//get the authors
-			if ( isset($work->aliases->biblio[0]->authors) ) {
-				$listing->authors = $work->aliases->biblio[0]->authors;
+			if ( isset($work->biblio->authors) ) {
+				$listing->authors = $work->biblio->authors;
 			}
 			//get the url
 			if ( isset($work->aliases->url[0]) ) {
 				$listing->url = $work->aliases->url[0];
+			}
+			//get the journal
+			if ( isset($work->biblio->journal) ) {
+				$listing->journal = $work->biblio->journal;
+			}
+			//get the badges
+			if ( isset($work->markup->metrics) ) {
+				$listing->badges = $work->markup->metrics;
 			}
 			//get the ID
 			if ( isset($work->aliases->doi[0]) ) {
@@ -491,7 +500,18 @@ class impactpubs_publist {
 		$this->sort_papers();
 		foreach ($this->papers as $paper){
 			$html .= $paper->make_html();
+		}	
+		//make sure the source has been set
+		if ( !isset($this->source) ) {
+			return $html;
 		}
+		$html .= '<p class = "impactpubs-footnote">Publication list retrieved from ';
+		if ( $this->source == 'orcid' ) $html .= 
+		'<a href = "http://orcid.org/">ORCiD</a>';
+		else if ( $this->source == 'impactstory') $html .=
+		'<a href = "http://impactstory.org/">ImpactStory</a>';
+		else $html .= '<a href = "http://www.ncbi.nlm.nih.gov/books/NBK25500/">NCBI</a>';
+		$html .= ' using <a href = "https://wordpress.org/plugins/impactpubs/">ImpactPubs</a></p>.';
 		return $html;
 	}
 }
@@ -511,7 +531,7 @@ impactpub_publist->import_from_pubmed()
 impactpub_publist->import_from_orcid()
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 class impactpubs_paper {
-	public $id_type, $id, $authors, $year, $title, $volume, $issue, $pages, $url, $full_citation;
+	public $id_type, $id, $authors, $year, $title, $volume, $issue, $pages, $url, $full_citation, $badges;
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	string html make_html(string $key) where $key is an impactstory key
 	Creates an HTML formatted string based on the properties of a paper.
@@ -560,6 +580,11 @@ class impactpubs_paper {
 					$html .= ".";
 				}	
 			}
+			
+			//the badges
+			if ( isset ($this->badges) ) {
+				$html .= $this->badges;
+			}			
 		}
 		$html .= "</p>";
 		return $html;

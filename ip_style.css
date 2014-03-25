@@ -1,9 +1,36 @@
 .impactpubs_publication {
-	line-height: 23px;
+	font-size: larger;
 }
 
 .impactpubs_publication .ip-journal {
 	font-style: italic;
+}
+
+.awards {
+	display: inline;
+}
+
+.awards-list {
+	display: inline;
+}
+
+.awards-list li {
+	list-style-type: none;
+	display: inline;
+}
+
+.ti-badge {
+	text-decoration: none;
+	margin: 4px 5px 4px 5px;
+	border: 1px solid #377EB8;
+	border-radius: 4px 4px 4px 4px;
+	-webkit-border-radius: 4px 4px 4px 4px;
+	-moz-border-radius: 4px 4px 4px 4px;
+}
+
+.awards .is-highly {
+	background: #377EB8;
+	color: white;
 }
 
 .impactpubs_footnote {
