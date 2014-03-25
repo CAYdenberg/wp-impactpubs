@@ -1,23 +1,14 @@
-**Note: ImpactStory has retired their embeddable JavaScript widget, but it looks like they are now providing full profiles in JSON format.
+=== ImpactPubs ===
 
-I'll therefore be retiring the ImpactStory portion of this code and building something new using that endpoint. The good news is there shouldn't be a need to make to remote calls to multiple services: ImpactStory can now be the one-stop shop for your publication list.**
-
-Search PubMed or ORCiD. Display the results with shortcode.
-=======
-
-Search PubMed or ORCiD and attach ImpactStory badges. Display the results with shortcode.
+Search PubMed, ORCiD, or ImpactStory and display publication information on your blog or website. Altmetric information from ImpactStory can be included.
 
 == Description ==
 
 This is a WordPress plugin to automatically display a publication profile on a website.
 
-Results can be pulled from PubMed or ORCiD, and will be automatically updated once a week.
+Results can be pulled from PubMed, ORCiD, or ImpactStory, and will be automatically updated daily.
 
 One profile can be created per blog user.
-
-Altmetrics badges can be appended to each result by obtaining an API key from ImpactStory (www.impactstory.org).
-The Pubmed query and API information can be entered into a special Settings page created in the dashboard. 
-The publications can be listed on a particular page (or post!) by entering the shortcode:
 
 [publications]
 
@@ -44,6 +35,15 @@ First, go to orcid.org and create your publication profile (very easy to do).
 On the left side of your profile, you should see a 16 digit number. Copy this
 number down to access your profile from ImpactPubs.
 
+**To retrieve results from ImpactStory**: go to http://impactstory.org and create a profile. Your name in URL format 
+(eg http://www.impactstory.org/users/YourName/) is entered as the identifier.
+
+NOTE: This Plugin works by making a remote call to the National Library of Medicine's E-Utilities.
+(http://eutils.ncbi.nlm.nih.gov/entrez/eutils/), to ORCiD (http://feed.labs.orcid-eu.org/) and to ImpactStory (http://impactstory.org/embed/).
+
+The creator(s) of the Plugin assume no responsibility for the accuracy or cleanliness of the data retrieved 
+from these remote services. Use at your own risk.
+
 ==Installation==
 
 1. Download the Plugin and activate it.
@@ -54,14 +54,17 @@ the papers you would like to display.
 1. Alternatively, go to ORCiD (orcid.org) and create your profile. Copy down the 16 digit number
 on the left-hand side of your profile.
 
-<<<<<<< HEAD
-1. Enter your preferred search method, the search string or ORCiD number.
-=======
-1. To add Altmetrics, write to team@impactstory.org and ask for a free API key.
+1. Alternatively, go to ImpactStory (www.impactstory.org) and create a profile. Copy down your username.
 
-1. Enter your preferred search method, the search string or ORCiD number, and the API key into the settings page on the dashboard.
+1. Enter your preferred search method, the search string, ORCiD number or your name at ImpactStory as the "identifier".
 
 1. Wherever you'd like the publications list to appear, type [publications name=<i>loginname</i>], where *loginname* is your WordPress login name.
+
+== Screenshots ==
+
+1. Example of required user input. This is a form on the Wordpress dashboard.
+
+2. Example of output the end-user sees upon requesting the page. Style may vary depending on your WordPress theme.
 
 == Changelog ==
 
@@ -69,7 +72,7 @@ on the left-hand side of your profile.
 
 - Initial release
 
-= 2.0 =
+= 2.0=
 
 - Added ORCiD search functionality
 
@@ -105,8 +108,19 @@ on the left-hand side of your profile.
 
 - Changed naming of span classes to avoid conflicts
 
-- made ORCiD parser accept articles without a journal or a date. Now we only require a title and at least one author.
+- made ORCiD parser accept articles without a journal or a date. Now we only require a title and at least one author
 
-- Tweaked how URLs and DOIs are handled
+= 2.7 =
+
+- Retired all the ImpactStory code.
+
+- Improved error handling (when remote service can't be contacted) a bit.
+ 
+= 3.0 = 
+
+- Put ImpactStory back in, as a completely separate 3rd party service.
+
+==
+
 
 ==
