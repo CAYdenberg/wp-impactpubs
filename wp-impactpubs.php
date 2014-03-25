@@ -129,7 +129,9 @@ function impactpubs_settings_form() {
 					<td><input type = "text" name = "impactpubs_identifier" 
 					value = "<?php echo esc_attr__( $identifier ); ?>"></td>
 					<td><i>For ORCiD, this is a 16-digit number (e.g. 0000-0003-1419-2405).<br>
-				For PubMed, enter a unique query string (e.g. Ydenberg CA AND (Brandeis[affiliation] OR Princeton[affiliation])</i></td>
+						For PubMed, enter a unique query string (e.g. Ydenberg CA AND (Brandeis[affiliation] OR Princeton[affiliation]).<br />
+						For ImpactStory, this is generally your name as it appears in the URL: www.impactstory.com/user/<b>YourName</b>/
+						</i></td>
 				</tr>
 				
 				<tr>
@@ -254,7 +256,12 @@ class impactpubs_publist {
 		$this->usr = $usr;
 	}
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	
+	Switch-type method which calls the appropriate import 
+	method based on the passed @pubsource.
+	$pubsource -  string, either pubmed, impactstory or orcid
+	$identifier - unique identifier for that pubsouce
+	No return value.
+	Throws an exception if the pubsource is not recognized.
 	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 	function import( $pubsource, $identifier ) {
 		$this->source = $pubsource;
@@ -271,16 +278,18 @@ class impactpubs_publist {
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	Retrieve paper properties from a publication list.
 	import_from_pubmed(string $pubmed_query). 
+	No return value.
+	Throws an exception if a connection to remote utility cannot be made.
 	Because PubMed does not have unique identifiers for authors, this is usually
 	a search string that will pull up pubs from the author in question. 
 	eg: 
 	* ydenberg
 	* ydenberg CA[author] 
 	* ydenberg CA[author] AND (princeton[affiliation] OR brandeis[affiliation])
+	No return value
 	Assigns paper properties to the child objects of class paper.
-	Called by: impactpub_settings_form()
-	Calls:
-	impactpub_author_format()
+	Called by: impactpubs_publist::import()
+	Calls: impactpub_author_format()
 	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 	function import_from_pubmed($pubmed_query) {
 		//format the author string with "%20" in place of a space to make a remote call
@@ -363,13 +372,15 @@ class impactpubs_publist {
 	}
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	Retrieve paper properties from a publication list.
-	import_from_orcid(string $orcid_id). This is a 16 digit number linking to an ORCID user's profile.
+	import_from_orcid(string $orcid_id). 
+	This is a 16 digit number linking to an ORCID user's profile.
 	eg 0000-0003-1419-2405
+	No return value.
+	Throws an exception if a connection to ORCiD cannot be made.
 	Assigns paper properties to the child objects of class paper.
 	Called by: impactpub_settings_form()
 	Calls:
 	impactpubs_author_format()
-	impactpubs_parse_bibtex()
 	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 	function import_from_orcid($orcid_id){
 		$search = 'http://feed.labs.orcid-eu.org/'.$orcid_id.'.json';
@@ -437,6 +448,12 @@ class impactpubs_publist {
 			$paper_num++;
 		} 
 	}
+	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	no return import_from_impactstory( string $identifier )
+	Throws an exception if a connection cannot be made.
+	The identifier is URLified -  ie for Casey Ydenberg it should be CaseyYdenberg.
+	The relevent form automatically strips out whitespace.
+	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 	function import_from_impactstory( $identifier ) {
 		$search = 'http://www.impactstory.org/user/'.$identifier.'/products';
 		$result = wp_remote_retrieve_body( wp_remote_get($search) );
@@ -485,6 +502,11 @@ class impactpubs_publist {
 			$paper_num++;
 		}
 	}
+	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	no return ::sort_papers()
+	Sorts papers in this class based on the year of publication.
+	Calls: impactpubs_compare_papers()
+	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 	function sort_papers() {
 		usort($this->papers, 'impactpubs_compare_papers');
 	}
@@ -550,12 +572,14 @@ class impactpubs_paper {
 		} else {
 			
 			//the authors
-			if ( isset($this->authors) ) {
+			if ( isset($this->authors) && $this->authors != '' ) {
 				$html .= '<span class = "ip-authors">'.$this->authors.'</span>, ';
 			}
 			
 			//the date (required)
-			$html .= '<span class = "ip-date">'.$this->year.'</span>. '; 	
+			if ( isset($this->year) ) {
+				$html .= '<span class = "ip-date">'.$this->year.'</span>. '; 	
+			}
 			//the title (required)
 			$html .= '<span class = "ip-title">';
 			if ($this->url != '') {
@@ -612,7 +636,7 @@ function impactpubs_author_format($authors){
 }
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~
-string validation impactpubs_validate_pubsource(string $value)
+string $validation impactpubs_validate_pubsource(string $value)
 Called by: impactpubs_settings_form()
 ~~~~~~~~~~~~~~~~~~~~~~~~~*/
 function impactpubs_validate_pubsource($value){
@@ -625,7 +649,7 @@ function impactpubs_validate_pubsource($value){
 }
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~
-string validation impactpubs_validate_identifier(string $value, string $pubsource)
+string $validation impactpubs_validate_identifier(string $value, string $pubsource)
 Called by: impactpubs_settings_form()
 ~~~~~~~~~~~~~~~~~~~~~~~~~*/
 function impactpubs_validate_identifier($value, $pubsource = 'orcid'){
@@ -652,6 +676,13 @@ function impactpubs_validate_identifier($value, $pubsource = 'orcid'){
 	}
 }
 
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+integer impactpubs_compare_papers(mixed $a, mixed $b)
+usort callback function called by impactpubs_publist::sort_papers()
+Designed to sort papers from newest to oldest (ie by year, in descending order)
+Therefore $a and $b are intended to be integers; other values may result
+in alphanumeric sorting.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 function impactpubs_compare_papers($a, $b) {
 	if ( $a->year == $b->year ) {
 		return 0;
