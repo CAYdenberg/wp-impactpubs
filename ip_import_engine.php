@@ -66,7 +66,7 @@ class impactpubs_publist {
 		$retrieve = "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&id=";
 		//make a call to pubmeds esearch utility, to retrieve pmids associated with an authors name or
 		//other search
-		$result = wp_remote_retrieve_body( wp_remote_get($search) );
+		$result = impactpubs_remote_call( $search );
 		if ( !$result ) {
 			throw new Exception('NoConnect');
 		}
@@ -84,7 +84,7 @@ class impactpubs_publist {
 				//the ending ",", if present, doesn't seem to have any adverse effects
 			}
 			//make a second call to pubmed's esummary utility
-			$result = wp_remote_retrieve_body( wp_remote_get($retrieve) );
+			$result = impactpubs_remote_call($retrieve);
 			if ( !$result ) {
 				throw new Exception('NoConnect');
 			}
@@ -149,7 +149,7 @@ class impactpubs_publist {
 	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 	function import_from_orcid($orcid_id){
 		$search = 'http://feed.labs.orcid-eu.org/'.$orcid_id.'.json';
-		$result = wp_remote_retrieve_body( wp_remote_get($search) );
+		$result = impactpubs_remote_call($search);
 		if ( !$result ) {
 			throw new Exception('NoConnect');
 		}
@@ -225,7 +225,7 @@ class impactpubs_publist {
 	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 	function import_from_impactstory( $identifier ) {
 		$search = 'http://www.impactstory.org/user/'.$identifier.'/products';
-		$result = wp_remote_retrieve_body( wp_remote_get($search) );
+		$result = impactpubs_remote_call($search);
 		if ( !$result ) {
 			throw new Exception('NoConnect');
 		}
@@ -386,6 +386,25 @@ class impactpubs_paper {
 
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * string page impactpubs_remote_call(string url)
+ * Checks if the WP HTTP functions are installed.
+ * If they are, uses WP to retrieve the page and returns the page body.
+ * If not, uses file_get_contents and passes back the whole page.
+ */
+function impactpubs_remote_call($url) {
+	if ( function_exists('wp_remote_retrieve_body') && function_exists('wp_remote_get') ) {
+		return wp_remote_retrieve_body( wp_remote_get($url) );
+	} else {
+		try {
+			return file_get_contents($url);
+		} catch (Exception $e) {
+			//final fallback included because some servers do not allow file_get_contents
+			throw new Exception($e);
+		}
+	}
+}
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 string $authors impactpubs_author_format(array $authors[, boolean $lastnamefirst])
 
 Called by: 
@@ -431,7 +450,7 @@ function impactpubs_validate_identifier($value, $pubsource = 'orcid'){
 		}
 	} else if ( $pubsource == 'pubmed' ){
 		//for pubmed, just excluding ;, quotes, escape char to prevent injection
-		if ( preg_match('/[\;\"\'\\\]/', $value) ) {
+		if ( preg_match('/\<script/', $value) ) {
 			return 'Invalid PubMed search';
 		} else {
 			return '';		
