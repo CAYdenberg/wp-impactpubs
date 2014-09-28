@@ -224,12 +224,13 @@ class impactpubs_publist {
 	The relevent form automatically strips out whitespace.
 	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 	function import_from_impactstory( $identifier ) {
-		$search = 'http://www.impactstory.org/user/'.$identifier.'/products';
+		$search = 'http://www.impactstory.org/profile/'.$identifier;
 		$result = impactpubs_remote_call($search);
 		if ( !$result ) {
 			throw new Exception('NoConnect');
 		}
-		$works = json_decode($result);
+		$json = json_decode($result);
+		$works = $json->products;
 		$paper_num = 0;
 		foreach ( $works as $work ) {
 			$listing = new impactpubs_paper();
@@ -254,8 +255,13 @@ class impactpubs_publist {
 				$listing->journal = $work->biblio->journal;
 			}
 			//get the badges
-			if ( isset($work->markup->metrics) ) {
-				$listing->badges = $work->markup->metrics;
+			if ( isset($work->metrics) ) {
+				$metrics = $work->metrics;
+				foreach ( $metrics as $metric) {
+					if ( $metric->display_count > 0 ) {
+						//drilldown_url display_count display_provider display_interaction
+					}
+				}
 			}
 			//get the ID
 			if ( isset($work->aliases->doi[0]) ) {
