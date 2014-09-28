@@ -24,7 +24,7 @@ class impactpubs_publist {
 	Switch-type method which calls the appropriate import 
 	method based on the passed @pubsource.
 	$pubsource -  string, either pubmed, impactstory or orcid
-	$identifier - unique identifier for that pubsouce
+	$identifier - unique identifier for that pubsource
 	No return value.
 	Throws an exception if the pubsource is not recognized.
 	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
@@ -259,7 +259,8 @@ class impactpubs_publist {
 				$metrics = $work->metrics;
 				foreach ( $metrics as $metric) {
 					if ( $metric->display_count > 0 ) {
-						//drilldown_url display_count display_provider display_interaction
+						$full_text = $metric->display_count . ' ' . $metric->display_provider . ' ' . $metric->display_interaction;
+						$listing->badges[] = new Badge($full_text, $metric->drilldown_url);
 					}
 				}
 			}
@@ -328,7 +329,7 @@ impactpub_publist->import_from_pubmed()
 impactpub_publist->import_from_orcid()
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 class impactpubs_paper {
-	public $id_type, $id, $authors, $year, $title, $volume, $issue, $pages, $url, $full_citation, $badges;
+	public $id_type, $id, $authors, $year, $title, $volume, $issue, $pages, $url, $full_citation, $badges = array();
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	string html make_html(string $key) where $key is an impactstory key
 	Creates an HTML formatted string based on the properties of a paper.
@@ -382,13 +383,31 @@ class impactpubs_paper {
 			
 			//the badges
 			if ( isset ($this->badges) ) {
-				$html .= $this->badges;
+				$html .= '<ul class="ip-badges">';
+				foreach ( $this->badges as $badge ) {
+					$html .= $badge->html;
+				}
+				$html .= '</ul>';
 			}			
 		}
 		$html .= "</p>";
 		return $html;
 	}
 }
+
+class Badge {
+	public $text, $link, $html;
+	function __construct($text, $link) {
+		$this->text = $text;
+		$this->link = $link;
+		$this->html = sprintf('<li class="badge"><a href="%s">%s</a></li>',
+			$link, $text);
+	}
+}
+
+
+
+
 
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
