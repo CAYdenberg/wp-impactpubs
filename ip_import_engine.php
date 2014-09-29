@@ -383,14 +383,13 @@ class impactpubs_paper {
 			
 			//the badges
 			if ( isset ($this->badges) ) {
-				$html .= '<ul class="ip-badges">';
+				$html .= '</p><p class="ip-badges">';
 				foreach ( $this->badges as $badge ) {
 					$html .= $badge->html;
 				}
-				$html .= '</ul>';
-			}			
+			} 
+			$html .= '</p>';		
 		}
-		$html .= "</p>";
 		return $html;
 	}
 }
@@ -400,7 +399,7 @@ class Badge {
 	function __construct($text, $link) {
 		$this->text = $text;
 		$this->link = $link;
-		$this->html = sprintf('<li class="badge"><a href="%s">%s</a></li>',
+		$this->html = sprintf('<span class="ip-badge"><a href="%s">%s</a></span>',
 			$link, $text);
 	}
 }
