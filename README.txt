@@ -7,7 +7,8 @@ Stable tag: tags
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-Search PubMed, ORCiD, or ImpactStory and display publication information on your blog or website. Altmetric information from ImpactStory can be included.
+Search PubMed, ORCiD, or ImpactStory and display publication information on your blog or website. 
+Include altmetrics from ImpactStory.
 
 == Description ==
 
@@ -126,5 +127,9 @@ on the left-hand side of your profile.
 = 3.0 = 
 
 - Put ImpactStory back in, as a completely separate 3rd party service.
+
+= 3.1 =
+
+- Updated calling from ImpactStory, to work with their new API.
 
 ==
