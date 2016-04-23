@@ -11,7 +11,7 @@ Author URI: www.caseyy.org
 
 /*
  Copyright 2013 by Casey A. Ydenberg (email: ydenberg@gmail.com)
- 
+
  This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -44,7 +44,7 @@ add_action('impactpubs_daily_update', 'impactpubs_update_lists');
 
 add_shortcode('publications', 'impactpubs_display_pubs');
 
-//installation procedures: 
+//installation procedures:
 //schedule daily event to update publication lists
 function impactpubs_install() {
 	wp_schedule_event( current_time( 'timestamp' ), 'daily', 'impactpubs_daily_update' );
@@ -65,7 +65,7 @@ function impactpubs_scripts() {
 //create the admin menu
 //hooked by admin_menu event
 function impactpubs_create_menu() {
-	add_menu_page('My ImpactPubs Publication Retrieval Information', 'My Publications', 
+	add_menu_page('My ImpactPubs Publication Retrieval Information', 'My Publications',
 	'edit_posts', __FILE__, 'impactpubs_settings_form');
 }
 
@@ -106,45 +106,67 @@ function impactpubs_settings_form() {
 	?>
 	<div class = "wrap">
 		<h2>ImpactPubs Settings</h2>
-		
+
 		<?php if ( $valid != '' ){
 			echo "<h2>Oops, looks like there was a problem:<br />$valid</h2>";
 		}
 		?>
-		
+
 		<form method = "POST" id = "impactpubsForm">
 			<?php wp_nonce_field( 'impactpubs_nonce' ); ?>
 			<table>
 				<tr>
 					<td><label for = "impactpubs_pub_source">Publication source</label></td>
-					<td><input type = "radio" name = "impactpubs_pubsource" value = "pubmed" 
-					<?php if ( $pubsource == 'pubmed' ) echo 'checked'; ?> />PubMed<br />				
-					<input type = "radio" name = "impactpubs_pubsource" value = "orcid" 
+					<td><input type = "radio" name = "impactpubs_pubsource" value = "pubmed"
+					<?php if ( $pubsource == 'pubmed' ) echo 'checked'; ?> />PubMed<br />
+					<input type = "radio" name = "impactpubs_pubsource" value = "orcid"
 					<?php if ( $pubsource == 'orcid' ) echo 'checked'; ?> />ORCiD<br />
-					
+
 					<input type = "radio" name = "impactpubs_pubsource" value = "impactstory"
-					<?php if ( $pubsource == 'impactstory' ) echo 'checked'; ?> />ImpactStory 
+					<?php if ( $pubsource == 'impactstory' ) echo 'checked'; ?> />ImpactStory
 				</tr>
-				
+
 				<tr>
 					<td><label for = "impactpubs_identifier">Identifier</label></td>
-					<td><input type = "text" name = "impactpubs_identifier" 
+					<td><input type = "text" name = "impactpubs_identifier"
 					value = "<?php echo esc_attr__( $identifier ); ?>"></td>
 					<td><i>For ORCiD, this is a 16-digit number (e.g. 0000-0003-1419-2405).<br>
 						For PubMed, enter a unique query string (e.g. Ydenberg CA AND (Brandeis[affiliation] OR Princeton[affiliation]).<br />
 						For ImpactStory, this is generally your name as it appears in the URL: www.impactstory.com/user/<b>YourName</b>/
 						</i></td>
 				</tr>
-				
+
+        <tr>
+          <td><label for = "impactpubs_pub_source">Publication source</label></td>
+          <td>
+            <input type = "radio" name = "impactpubs_pubsource" value = "pubmed"
+              <?php if ( $pubsource == 'pubmed' ) echo 'checked'; ?> />PubMed<br />
+            <input type = "radio" name = "impactpubs_pubsource" value = "orcid"
+              <?php if ( $pubsource == 'orcid' ) echo 'checked'; ?> />ORCiD<br />
+            <input type = "radio" name = "impactpubs_pubsource" value = "impactstory"
+              <?php if ( $pubsource == 'impactstory' ) echo 'checked'; ?> />ImpactStory
+          </td>
+        </tr>
+
+        <tr>
+          <td><label for="impactpubs_display-mode">Display Mode</label></td>
+          <td>
+            <input type = "radio" name = "impactpubs_display-mode" value="single-page"
+              <?php if ( $pubsource == 'pubmed' ) echo 'checked'; ?> />Single Page<br />
+            <input type = "radio" name = "impactpubs_display-mode" value = "by-year"
+              <?php if ( $pubsource == 'orcid' ) echo 'checked'; ?> />By Year<br />
+          </td>
+        </tr>
+
 				<tr>
 					<td></td><td>
 					<input type = "submit" name = "submit" value = "Save Settings" class = "button-primary" /></td>
 				</tr>
 			</table>
-		</form>	
+		</form>
 	</div>
-	
-	<div class = "wrap" id = "impactpubs_wrapper">		
+
+	<div class = "wrap" id = "impactpubs_wrapper">
 		<?php
 			$impactpubs = new impactpubs_publist( $user );
 			try {
@@ -153,7 +175,7 @@ function impactpubs_settings_form() {
 				echo '<h2>Warning: There was a problem getting data from the source. The remote server may be down, or there might be an error somewhere. Please try again in a few minutes.';
 				exit();
 			}
-			
+
 			if ( $html = $impactpubs->make_html() ) {
 				echo '<h2>When you type <i>[publications name='.$user_ob->user_login.']</i>, the following will be shown:</h2>';
 				echo $html;
@@ -165,9 +187,9 @@ function impactpubs_settings_form() {
 			}
 
 		?>
-		
+
 	</div>
-	
+
 	<?php
 }
 
@@ -176,21 +198,21 @@ hooked by impactpubs_daily_update
 
 Update the publications lists for all users
 Pull out their pubsource, identifier, and IS key
-from the metadata, create an impactpubs object, 
-run the import, and write to db 
+from the metadata, create an impactpubs object,
+run the import, and write to db
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 function impactpubs_update_lists(){
 	$users = get_users( array() );
 	foreach ( $users as $user ){
 		$id = $user->ID;
 		$pubsource = get_user_meta( $id, '_impactpubs_pubsource', TRUE);
-		//if no entry in meta database (user has not set up their profile), 
+		//if no entry in meta database (user has not set up their profile),
 		//then skip to the next one
 		if ( $pubsource == '' ) continue;
 		$identifier = get_user_meta( $id, '_impactpubs_identifier', TRUE);
 		$impactpubs = new impactpubs_publist( $id );
 		try {
-			$impactpubs->import( $pubsource, $identifier ); 
+			$impactpubs->import( $pubsource, $identifier );
 		} catch (Exception $e) {
 			//this is a quiet death, since it will occur during a cron
 			die();
@@ -226,10 +248,10 @@ function impactpubs_display_pubs($shortcode_atts) {
 		//cover possibility of an unrecognized user_login
 		if ( !$user ) return 'Publication information not available';
 		else $user_id = $user['ID'];
-	}	
+	}
 	$result = $wpdb->get_row("
-		SELECT * FROM $wpdb->usermeta 
-		WHERE user_id = $user_id 
+		SELECT * FROM $wpdb->usermeta
+		WHERE user_id = $user_id
 		AND meta_key = '_impactpubs_html' ", ARRAY_A);
 	if ($result) return $result['meta_value'];
 	else return 'Publication information not available';
