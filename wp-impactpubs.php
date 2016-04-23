@@ -81,6 +81,7 @@ function impactpubs_settings_form() {
 		check_admin_referer( 'impactpubs_nonce' );
 		$pubsource = $_POST['impactpubs_pubsource'];
 		$identifier = $_POST['impactpubs_identifier'];
+    $display = $_POST['impactpubs_display-mode'];
 		//for impactstory searches, remove all whitespace from the identifier
 		if ( $pubsource == 'impactstory' ) {
 			$identifier = preg_replace( '/\s+/', '', $identifier );
@@ -88,20 +89,16 @@ function impactpubs_settings_form() {
 		//keep track of validation errors
 		$valid .= impactpubs_validate_pubsource($pubsource);
 		$valid .= impactpubs_validate_identifier($identifier, $pubsource);
-		if ( $valid == '' ) {
-			if ( !add_user_meta($user, '_impactpubs_pubsource', $pubsource, TRUE ) ) {
-				update_user_meta($user, '_impactpubs_pubsource', $pubsource);
-			}
-			if ( !add_user_meta($user, '_impactpubs_identifier', $identifier, TRUE ) ) {
-				update_user_meta($user, '_impactpubs_identifier', $identifier );
-			}
+		if ( $valid === '' ) {
+      update_user_meta($user, '_impactpubs_pubsource', $pubsource);
+      update_user_meta($user, '_impactpubs_identifier', $identifier );
+      update_user_meta($user, '_impactpubs_display-mode', $display);
 		}
 	} else {
 		//if no NEW data has been submitted, use values from the database as defaults in the form
-		$pubsource = get_user_meta( $user, '_impactpubs_pubsource', TRUE );
-		if ( $pubsource == '') $pubsource = 'pubmed';
-		$identifier = get_user_meta( $user, '_impactpubs_identifier', TRUE );
-		$identifier = stripslashes($identifier);
+		$pubsource = get_user_meta( $user, '_impactpubs_pubsource', TRUE ) ?: 'pubmed';
+		$identifier = stripslashes(get_user_meta( $user, '_impactpubs_identifier', TRUE ));
+		$display = get_user_meta( $user, '_impactpubs_display-mode', TRUE);
 	}
 	?>
 	<div class = "wrap">
@@ -152,9 +149,9 @@ function impactpubs_settings_form() {
           <td><label for="impactpubs_display-mode">Display Mode</label></td>
           <td>
             <input type = "radio" name = "impactpubs_display-mode" value="single-page"
-              <?php if ( $pubsource == 'pubmed' ) echo 'checked'; ?> />Single Page<br />
+              <?php if ( $display !== 'by-year' ) echo 'checked'; ?> />Single Page<br />
             <input type = "radio" name = "impactpubs_display-mode" value = "by-year"
-              <?php if ( $pubsource == 'orcid' ) echo 'checked'; ?> />By Year<br />
+              <?php if ( $display === 'by-year' ) echo 'checked'; ?> />By Year<br />
           </td>
         </tr>
 
@@ -168,7 +165,7 @@ function impactpubs_settings_form() {
 
 	<div class = "wrap" id = "impactpubs_wrapper">
 		<?php
-			$impactpubs = new impactpubs_publist( $user );
+			$impactpubs = new impactpubs_publist( $user, $display );
 			try {
 				$impactpubs->import( $pubsource, $identifier );
 			} catch (Exception $e) {

@@ -2,9 +2,9 @@
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 object impactpubs_publist(string $user)
-Properties: 
-user - the current user's name, 
-papers - an array of papers belonging to that user, 
+Properties:
+user - the current user's name,
+papers - an array of papers belonging to that user,
 
 Methods:
 import_from_pubmed(string $pubmed_query)
@@ -17,11 +17,12 @@ impactpub_settings_form
 
 class impactpubs_publist {
 	public $usr, $source, $papers = array();
-	function __construct($usr){
+	function __construct($usr, $display = 'single-page') {
 		$this->usr = $usr;
+		$this->display = $display;
 	}
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	Switch-type method which calls the appropriate import 
+	Switch-type method which calls the appropriate import
 	method based on the passed @pubsource.
 	$pubsource -  string, either pubmed, impactstory or orcid
 	$identifier - unique identifier for that pubsource
@@ -42,14 +43,14 @@ class impactpubs_publist {
 	}
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	Retrieve paper properties from a publication list.
-	import_from_pubmed(string $pubmed_query). 
+	import_from_pubmed(string $pubmed_query).
 	No return value.
 	Throws an exception if a connection to remote utility cannot be made.
 	Because PubMed does not have unique identifiers for authors, this is usually
-	a search string that will pull up pubs from the author in question. 
-	eg: 
+	a search string that will pull up pubs from the author in question.
+	eg:
 	* ydenberg
-	* ydenberg CA[author] 
+	* ydenberg CA[author]
 	* ydenberg CA[author] AND (princeton[affiliation] OR brandeis[affiliation])
 	No return value
 	Assigns paper properties to the child objects of class paper.
@@ -94,10 +95,10 @@ class impactpubs_publist {
 			$paper_num = 0;
 			foreach ($papers as $paper){
 				$this->papers[$paper_num] = new impactpubs_paper();
-				//id_types will be assigned as pmid in each case 
+				//id_types will be assigned as pmid in each case
 				$this->papers[$paper_num]->id_type = 'pmid';
 				//get the id number associated with the record
-				$this->papers[$paper_num]->id = $paper->getElementsByTagName('Id')->item(0)->nodeValue; 
+				$this->papers[$paper_num]->id = $paper->getElementsByTagName('Id')->item(0)->nodeValue;
 				//initialize values of the data we want to get from the XML
 				//authors and year need further manipulation and are not immediately declared in the Object
 				$authors = array();
@@ -126,18 +127,18 @@ class impactpubs_publist {
 							break;
 					} //end switch
 				} //end inner foreach
-				//the date includes year and month. Strip them out. 
+				//the date includes year and month. Strip them out.
 				$this->papers[$paper_num]->year = substr($year, 0, 4);
 				//format the authors list
 				$this->papers[$paper_num]->authors = impactpubs_author_format($authors);
 				$this->papers[$paper_num]->url = 'http://www.ncbi.nlm.nih.gov/pubmed/'.$this->papers[$paper_num]->id;
 				$paper_num++;
 			}
-		}				
+		}
 	}
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	Retrieve paper properties from a publication list.
-	import_from_orcid(string $orcid_id). 
+	import_from_orcid(string $orcid_id).
 	This is a 16 digit number linking to an ORCID user's profile.
 	eg 0000-0003-1419-2405
 	No return value.
@@ -165,7 +166,7 @@ class impactpubs_publist {
 			}
 			//get the title (essential)
 			if ( isset($work->title) ) {
-				$listing->title = $work->title;	
+				$listing->title = $work->title;
 			} else {
 				continue;
 			}
@@ -215,7 +216,7 @@ class impactpubs_publist {
 			$this->papers[$paper_num] = $listing;
 			unset($listing);
 			$paper_num++;
-		} 
+		}
 	}
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	no return import_from_impactstory( string $identifier )
@@ -286,6 +287,21 @@ class impactpubs_publist {
 	function sort_papers() {
 		usort($this->papers, 'impactpubs_compare_papers');
 	}
+
+	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	 * return array of unique publication years
+	 * Called by impactpubs->make_html
+	 */
+	function find_years() {
+		$years = array();
+		foreach ($this->papers as $paper) {
+			if (!in_array($paper->year, $years)) {
+				array_push($years, $paper->year);
+			}
+		}
+		return $years;
+	}
+
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	string $html make_html()
 	creates the HTML for a publication list.
@@ -294,17 +310,29 @@ class impactpubs_publist {
 	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 	function make_html(){
 		if ( !count( $this->papers ) ) return FALSE;
+
 		$html = '';
+
 		$this->sort_papers();
-		foreach ($this->papers as $paper){
-			$html .= $paper->make_html();
-		}	
+		$years = $this->find_years();
+		rsort($years);
+
+		if ($this->display === 'by-year') {
+			// $html .= $this->years_ctls();
+		}
+
+		foreach ($this->papers as $paper) {
+			$notshown = ($this->display === 'by-year') && (!$paper->is_year($years[0]));
+			$html .= $paper->make_html($notshown);
+		}
+
 		//make sure the source has been set
 		if ( !isset($this->source) ) {
 			return $html;
 		}
+
 		$html .= '<p class = "impactpubs-footnote">Publication list retrieved from ';
-		if ( $this->source == 'orcid' ) $html .= 
+		if ( $this->source == 'orcid' ) $html .=
 		'<a href = "http://orcid.org/">ORCiD</a>';
 		else if ( $this->source == 'impactstory') $html .=
 		'<a href = "http://impactstory.org/">ImpactStory</a>';
@@ -320,7 +348,7 @@ Properties: self-explanatory
 
 Methods:
 make_html(string $key)
-Key is the impactstory key, which is passed from the parent 
+Key is the impactstory key, which is passed from the parent
 impactpubs_publist->make_html method because it is associated
 with a user, not a paper
 
@@ -330,31 +358,32 @@ impactpub_publist->import_from_orcid()
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 class impactpubs_paper {
 	public $id_type, $id, $authors, $year, $title, $volume, $issue, $pages, $url, $full_citation, $badges = array();
+
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	string html make_html(string $key) where $key is an impactstory key
 	Creates an HTML formatted string based on the properties of a paper.
 	Each paper is present as a <p>, with class "publication" and a unique id for CSS styling.
-	Could use a list, but formatting looks better this way without doing any CSS 
+	Could use a list, but formatting looks better this way without doing any CSS
 	(easier for end-users, IMO).
 	Each element of the publication (authors, year, title, etc.) is present as a seperate span with
 	a distinct class.
 	Called by:
 	impactpubs_publist->make_html()
 	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-	function make_html(){
+	function make_html($notshown) {
 		$html = '<p class = "impactpubs_publication" id = "'.$this->id.'">';
 		if ( isset($this->full_citation) ){
 			echo $this->full_citation;
 		} else {
-			
+
 			//the authors
 			if ( isset($this->authors) && $this->authors != '' ) {
 				$html .= '<span class = "ip-authors">'.$this->authors.'</span>, ';
 			}
-			
+
 			//the date (required)
 			if ( isset($this->year) ) {
-				$html .= '<span class = "ip-date">'.$this->year.'</span>. '; 	
+				$html .= '<span class = "ip-date">'.$this->year.'</span>. ';
 			}
 			//the title (required)
 			$html .= '<span class = "ip-title">';
@@ -364,7 +393,7 @@ class impactpubs_paper {
 				$html .= $this->title.'</span>';
 			}
 			$html .= '</span> &nbsp';
-			
+
 			//the journal
 			if ( isset($this->journal) ) {
 				$html .= '<span class = "ip-journal">'.$this->journal.'</span>';
@@ -378,19 +407,27 @@ class impactpubs_paper {
 					$html .= ' <span class = "ip-vol">'.$this->volume.'</span>.';
 				} else { //if no volume or issue, assume online publication
 					$html .= ".";
-				}	
+				}
 			}
-			
+
+			if ( $notshown ) {
+				$html .= 'NOTSHOWN';
+			}
+
 			//the badges
 			if ( isset ($this->badges) ) {
 				$html .= '</p><p class="ip-badges">';
 				foreach ( $this->badges as $badge ) {
 					$html .= $badge->html;
 				}
-			} 
-			$html .= '</p>';		
+			}
+			$html .= '</p>';
 		}
 		return $html;
+	}
+
+	function is_year($year) {
+		return (intval($this->year) === intval($year));
 	}
 }
 
@@ -431,16 +468,16 @@ function impactpubs_remote_call($url) {
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 string $authors impactpubs_author_format(array $authors[, boolean $lastnamefirst])
 
-Called by: 
+Called by:
 impactpubs_publist->import_from_pubmed()
 impactpubs_publist->import_from_orcid()
 
-Takes an array of author names and returns a nicely formatted string. 
+Takes an array of author names and returns a nicely formatted string.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 function impactpubs_author_format($authors){
 	$output = "";
 	foreach ($authors as $author){
-		$author = trim($author); 
+		$author = trim($author);
 		$output = $output."; ".$author;
 	}
 	$output = trim($output, ';,');
@@ -477,7 +514,7 @@ function impactpubs_validate_identifier($value, $pubsource = 'orcid'){
 		if ( preg_match('/\<script/', $value) ) {
 			return 'Invalid PubMed search';
 		} else {
-			return '';		
+			return '';
 		}
 	} else if ( $pubsource == 'impactstory' ) {
 		if ( preg_match('/[^A-Za-z0-9]/', $value ) ) {
@@ -487,6 +524,7 @@ function impactpubs_validate_identifier($value, $pubsource = 'orcid'){
 		}
 	}
 }
+
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 integer impactpubs_compare_papers(mixed $a, mixed $b)
