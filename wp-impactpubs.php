@@ -98,7 +98,7 @@ function impactpubs_settings_form() {
 		//if no NEW data has been submitted, use values from the database as defaults in the form
 		$pubsource = get_user_meta( $user, '_impactpubs_pubsource', TRUE ) ?: 'pubmed';
 		$identifier = stripslashes(get_user_meta( $user, '_impactpubs_identifier', TRUE ));
-		$display = get_user_meta( $user, '_impactpubs_display-mode', TRUE);
+		$display = get_user_meta( $user, '_impactpubs_display-mode', TRUE) ?: 'single-page';
 	}
 	?>
 	<div class = "wrap">
@@ -113,20 +113,28 @@ function impactpubs_settings_form() {
 			<?php wp_nonce_field( 'impactpubs_nonce' ); ?>
 			<table>
 				<tr>
-					<td><label for = "impactpubs_pub_source">Publication source</label></td>
-					<td><input type = "radio" name = "impactpubs_pubsource" value = "pubmed"
-					<?php if ( $pubsource == 'pubmed' ) echo 'checked'; ?> />PubMed<br />
-					<input type = "radio" name = "impactpubs_pubsource" value = "orcid"
-					<?php if ( $pubsource == 'orcid' ) echo 'checked'; ?> />ORCiD<br />
-
-					<input type = "radio" name = "impactpubs_pubsource" value = "impactstory"
-					<?php if ( $pubsource == 'impactstory' ) echo 'checked'; ?> />ImpactStory
+					<td>Publication source</td>
+					<td>
+            <input type="radio" name="impactpubs_pubsource" value="pubmed" id="impactpubs_pubsource_pubmed"
+					    <?php if ( $pubsource === 'pubmed' ) echo 'checked'; ?> />
+            <label for="impactpubs_pubsource_pubmed">PubMed</label>
+            <br />
+            <input type="radio" name="impactpubs_pubsource" value="orcid" id="impactpubs_pubsource_orcid"
+					    <?php if ( $pubsource === 'orcid' ) echo 'checked'; ?> />
+            <label for="impactpubs_pubsource_orcid">ORCiD
+            <br />
+            <input type="radio" name="impactpubs_pubsource" value="impactstory" id="impactpubs_pubsource_impactstory"
+					    <?php if ( $pubsource === 'impactstory' ) echo 'checked'; ?> />
+            <label for="impactpubs_pubsource_impactstory">ImpactStory</label>
+          </td>
 				</tr>
 
 				<tr>
-					<td><label for = "impactpubs_identifier">Identifier</label></td>
-					<td><input type = "text" name = "impactpubs_identifier"
-					value = "<?php echo esc_attr__( $identifier ); ?>"></td>
+					<td><label for="impactpubs_identifier">Identifier</label></td>
+					<td>
+            <input type="text" name="impactpubs_identifier" id="impactpubs_identifier"
+					       value = "<?php echo esc_attr__( $identifier ); ?>">
+          </td>
 					<td><i>For ORCiD, this is a 16-digit number (e.g. 0000-0003-1419-2405).<br>
 						For PubMed, enter a unique query string (e.g. Ydenberg CA AND (Brandeis[affiliation] OR Princeton[affiliation]).<br />
 						For ImpactStory, this is generally your name as it appears in the URL: www.impactstory.com/user/<b>YourName</b>/
@@ -134,24 +142,15 @@ function impactpubs_settings_form() {
 				</tr>
 
         <tr>
-          <td><label for = "impactpubs_pub_source">Publication source</label></td>
+          <td>Display Mode</td>
           <td>
-            <input type = "radio" name = "impactpubs_pubsource" value = "pubmed"
-              <?php if ( $pubsource == 'pubmed' ) echo 'checked'; ?> />PubMed<br />
-            <input type = "radio" name = "impactpubs_pubsource" value = "orcid"
-              <?php if ( $pubsource == 'orcid' ) echo 'checked'; ?> />ORCiD<br />
-            <input type = "radio" name = "impactpubs_pubsource" value = "impactstory"
-              <?php if ( $pubsource == 'impactstory' ) echo 'checked'; ?> />ImpactStory
-          </td>
-        </tr>
-
-        <tr>
-          <td><label for="impactpubs_display-mode">Display Mode</label></td>
-          <td>
-            <input type = "radio" name = "impactpubs_display-mode" value="single-page"
-              <?php if ( $display !== 'by-year' ) echo 'checked'; ?> />Single Page<br />
-            <input type = "radio" name = "impactpubs_display-mode" value = "by-year"
-              <?php if ( $display === 'by-year' ) echo 'checked'; ?> />By Year<br />
+            <input type="radio" name="impactpubs_display-mode" value="single-page" id="impactpubs_display-mode_single-page"
+              <?php if ( $display !== 'by-year' ) echo 'checked'; ?> />
+            <label for="impactpubs_display-mode_single-page">Single Page</label>
+            <br />
+            <input type="radio" name="impactpubs_display-mode" value="by-year" id="impactpubs_display-mode_by-year"
+              <?php if ( $display === 'by-year' ) echo 'checked'; ?> />
+            <label for="impactpubs_display-mode_by-year">By Year</label>
           </td>
         </tr>
 
