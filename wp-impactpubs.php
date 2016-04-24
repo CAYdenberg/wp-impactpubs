@@ -60,6 +60,7 @@ function impactpubs_uninstall() {
 //hooked by 'wp_enqueue_scripts' and 'admin_enqueue_scripts'
 function impactpubs_scripts() {
 	wp_enqueue_style( 'ip_style', plugins_url( 'ip_style.css', __FILE__ ) );
+  wp_enqueue_script( 'ip_script', plugins_url( 'ip_script.js', __FILE__ ), ['jquery'], null, true );
 }
 
 //create the admin menu

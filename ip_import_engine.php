@@ -311,8 +311,8 @@ class impactpubs_publist {
 
 				<input type="radio" class="impactpubs_years-ctl" name="impactpubs_years-ctl"
 					value="<?php echo $year; ?>" id="impactpubs_years-ctl_<?php echo $year; ?>"
-					<?php if ($firstloop) echo ' checked'; ?> />
-				<label for="impactpubs_years-ctl_<?php echo $year; ?>"><?php echo $year; ?></label>
+					<?php if ($firstloop) echo ' checked '; ?> />
+				<label for="impactpubs_years-ctl_<?php echo $year; ?>"><a><?php echo $year; ?></a></label>
 
 			<?php
 			$firstloop = FALSE;
