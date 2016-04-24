@@ -302,6 +302,26 @@ class impactpubs_publist {
 		return $years;
 	}
 
+	function years_ctls($years) {
+		$html = '<form class="impactpubs_years-ctls" id="impactpubs_years-ctls">';
+		$firstloop = TRUE;
+		foreach ($years as $year) {
+			ob_start()
+			?>
+
+				<input type="radio" class="impactpubs_years-ctl" name="impactpubs_years-ctl"
+					value="<?php echo $year; ?>" id="impactpubs_years-ctl_<?php echo $year; ?>"
+					<?php if ($firstloop) echo ' checked'; ?> />
+				<label for="impactpubs_years-ctl_<?php echo $year; ?>"><?php echo $year; ?></label>
+
+			<?php
+			$firstloop = FALSE;
+			$html .= ob_get_clean();
+		}
+		$html .= '</form>';
+		return $html;
+	}
+
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	string $html make_html()
 	creates the HTML for a publication list.
@@ -318,7 +338,7 @@ class impactpubs_publist {
 		rsort($years);
 
 		if ($this->display === 'by-year') {
-			// $html .= $this->years_ctls();
+			$html .= $this->years_ctls($years);
 		}
 
 		foreach ($this->papers as $paper) {
@@ -371,7 +391,7 @@ class impactpubs_paper {
 	impactpubs_publist->make_html()
 	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 	function make_html($notshown) {
-		$html = '<p class = "impactpubs_publication" id = "'.$this->id.'">';
+		$html = '<p class="impactpubs_publication'.($notshown ? ' impactpubs_notshown' : '').'" id="'.$this->id.'" data-year="'.$this->year.'">';
 		if ( isset($this->full_citation) ){
 			echo $this->full_citation;
 		} else {
@@ -408,10 +428,6 @@ class impactpubs_paper {
 				} else { //if no volume or issue, assume online publication
 					$html .= ".";
 				}
-			}
-
-			if ( $notshown ) {
-				$html .= 'NOTSHOWN';
 			}
 
 			//the badges
