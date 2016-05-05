@@ -7,7 +7,7 @@ Stable tag: tags
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-Search PubMed, ORCiD, or ImpactStory and display publication information on your blog or website. 
+Search PubMed, ORCiD, or ImpactStory and display publication information on your blog or website.
 Include altmetrics from ImpactStory.
 
 == Description ==
@@ -39,17 +39,17 @@ For example:
 - "mcclintock B AND Cold Spring Harbor[affiliation]"
 
 **To retrieve results from ORCiD**:
-First, go to orcid.org and create your publication profile (very easy to do). 
+First, go to orcid.org and create your publication profile (very easy to do).
 On the left side of your profile, you should see a 16 digit number. Copy this
 number down to access your profile from ImpactPubs.
 
-**To retrieve results from ImpactStory**: go to http://impactstory.org and create a profile. Your name in URL format 
+**To retrieve results from ImpactStory**: go to http://impactstory.org and create a profile. Your name in URL format
 (eg http://www.impactstory.org/users/YourName/) is entered as the identifier.
 
 NOTE: This Plugin works by making a remote call to the National Library of Medicine's E-Utilities.
 (http://eutils.ncbi.nlm.nih.gov/entrez/eutils/), to ORCiD (http://feed.labs.orcid-eu.org/) and to ImpactStory (http://impactstory.org/embed/).
 
-The creator(s) of the Plugin assume no responsibility for the accuracy or cleanliness of the data retrieved 
+The creator(s) of the Plugin assume no responsibility for the accuracy or cleanliness of the data retrieved
 from these remote services. Use at your own risk.
 
 ==Installation==
@@ -123,13 +123,17 @@ on the left-hand side of your profile.
 - Retired all the ImpactStory code.
 
 - Improved error handling (when remote service can't be contacted) a bit.
- 
-= 3.0 = 
+
+= 3.0 =
 
 - Put ImpactStory back in, as a completely separate 3rd party service.
 
 = 3.1 =
 
 - Updated calling from ImpactStory, to work with their new API.
+
+= 3.2 =
+
+- Gave users the option to place papers in tabs organized by year.
 
 ==
