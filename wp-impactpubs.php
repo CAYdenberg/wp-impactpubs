@@ -4,7 +4,7 @@ Plugin Name: ImpactPubs
 Plugin URI: www.mylabwebsite.com
 =======
 Description: Display a list of publications with badges from ImpactStory.
-Version: 3.2
+Version: 3.3
 Author: Casey A. Ydenberg
 Author URI: www.caseyy.org
 */

@@ -128,6 +128,10 @@ on the left-hand side of your profile.
 
 - Gave users the option to place papers in tabs organized by year.
 
+= 3.3 =
+
+- Remove curly braces from ORCiD-imported articles' title and journal name
+
 ==
 
 
