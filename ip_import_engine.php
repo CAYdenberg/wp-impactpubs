@@ -166,13 +166,13 @@ class impactpubs_publist {
 			}
 			//get the title (essential)
 			if ( isset($work->title) ) {
-				$listing->title = $work->title;
+				$listing->title = impactpubs_strip_curly_braces($work->title);
 			} else {
 				continue;
 			}
 			//get the journal/publisher/book series (not essential)
 			if ( isset( $work->{'container-title'} ) ) {
-				$listing->journal = $work->{'container-title'};
+				$listing->journal = impactpubs_strip_curly_braces($work->{'container-title'});
 			} else if ( isset($work->publisher) ) {
 				$listing->journal = $work->publisher;
 			}
@@ -498,6 +498,17 @@ function impactpubs_author_format($authors){
 	}
 	$output = trim($output, ';,');
 	return $output;
+}
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+string $output impactpubs_strip_curly_braces(string $input)
+
+Remove '{' and '}' which are sometime present in BibTex article titles and journal titles
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+function impactpubs_strip_curly_braces($input) {
+	$subject = str_replace('{', '', $input);
+	$subject = str_replace('}', '', $subject);
+	return $subject;
 }
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~
