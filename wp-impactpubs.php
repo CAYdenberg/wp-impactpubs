@@ -4,7 +4,7 @@ Plugin Name: ImpactPubs
 Plugin URI: www.mylabwebsite.com
 =======
 Description: Display a list of publications with badges from ImpactStory.
-Version: 3.3
+Version: 3.3.1
 Author: Casey A. Ydenberg
 Author URI: www.caseyy.org
 */
@@ -60,7 +60,7 @@ function impactpubs_uninstall() {
 //hooked by 'wp_enqueue_scripts' and 'admin_enqueue_scripts'
 function impactpubs_scripts() {
 	wp_enqueue_style( 'ip_style', plugins_url( 'ip_style.css', __FILE__ ) );
-  wp_enqueue_script( 'ip_script', plugins_url( 'ip_script.js', __FILE__ ), ['jquery'], null, true );
+  wp_enqueue_script( 'ip_script', plugins_url( 'ip_script.js', __FILE__ ), array('jquery'), null, true );
 }
 
 //create the admin menu
